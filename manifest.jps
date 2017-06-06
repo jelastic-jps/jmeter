@@ -1,0 +1,23 @@
+{
+	"jpsType": "install",
+	"application": {
+		"name": "Jmeter cluster",
+		"categories": ["apps/clustered-dbs", "apps/popular", "apps/clusters"],
+		"description": "asd can be increased stating more containers below.",
+		"logo": "https://raw.githubusercontent.com/jelastic-jps/mysql-cluster/master/images/mysql-logo.png",
+		"env": {
+			"topology": {
+				"nodes": [{
+					"cloudlets": 16,
+					"image": "jelastic/tomcat:8.5.5-jdk-1.8.0_102",
+					"displayName": "Master"
+				}, {
+					"count": 2,
+					"cloudlets": 16,
+					"image": "jelastic/tomcat:8.5.5-jdk-1.8.0_102",
+					"displayName": "Slave"
+				}]
+			}
+		}
+	}
+}
