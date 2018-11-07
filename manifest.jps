@@ -25,7 +25,8 @@ nodes:
     displayName: Worker
 
 onInstall:
-  - deploy:
-    archive: http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip
-    name: apache-jmeter.zip
-    context: ROOT
+  - deploy[cp,worker]:
+      archive: http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip
+      name: apache-jmeter.zip
+      context: ROOT
+
