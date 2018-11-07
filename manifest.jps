@@ -1,23 +1,31 @@
-{
-	"jpsType": "install",
-	"application": {
-		"name": "Jmeter cluster",
-		"categories": ["apps/clustered-dbs", "apps/popular", "apps/clusters"],
-		"description": "asd can be increased stating more containers below.",
-		"logo": "https://raw.githubusercontent.com/jelastic-jps/mysql-cluster/master/images/mysql-logo.png",
-		"env": {
-			"topology": {
-				"nodes": [{
-					"cloudlets": 16,
-					"image": "jelastic/tomcat:8.5.5-jdk-1.8.0_102",
-					"displayName": "Master"
-				}, {
-					"count": 2,
-					"cloudlets": 16,
-					"image": "jelastic/tomcat:8.5.5-jdk-1.8.0_102",
-					"displayName": "Slave"
-				}]
-			}
-		}
-	}
-}
+---
+jpsType: install
+jpsVersion: '1.1'
+name: Jmeter Cluster
+categories:
+  - apps/popular
+  - apps/clusters
+  - apps/dev-and-admin-tools
+description: Jmeter Cluster.
+logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
+baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
+
+nodes:
+  - nodeType: javaengine
+    cloudlets: 8
+    nodeGroup: cp
+    links: worker:worker
+    displayName: Master
+
+  - nodeType: javaengine
+    cloudlets: 16
+    nodeGroup: worker
+    metadata:
+      layer: worker
+    displayName: Worker
+
+onInstall:
+  - deploy:
+    archive: http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip
+    name: apache-jmeter.zip
+    context: ROOT
