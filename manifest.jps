@@ -22,10 +22,10 @@ nodes:
 
   - nodeType: javaengine
     cloudlets: 16
-    nodeGroup: worker
+    nodeGroup: workers
     metadata:
-      layer: worker
-    displayName: Worker
+      layer: workers
+    displayName: Workers
 
 onInstall:
   - deploy[cp,worker]:
