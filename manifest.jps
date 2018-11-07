@@ -33,15 +33,14 @@ onInstall:
     ports: '24000'
     name: Jmeter
   
-  - deploy[cp,workers]:
-      archive: http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip
-      name: apache-jmeter.zip
-      context: ROOT
-
+  - cmd[cp,workers]: |-
+      wget http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip -O /tmp/apache-jmeter.zip
+      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.0/ ~/apache-jmeter
+    
   - setupRemoteHosts
 
-
 actions:
+
   setupRemoteHosts:
     script: |
       var resp = jelastic.env.control.GetEnvInfo('${env.envName}', session);
@@ -50,7 +49,7 @@ actions:
       for (var i = 0, n = resp.nodes; i < n.length; i++)
         n[i].nodeGroup == nodeGroup ? nodes.push('node' + n[i].id + ':24000') : 0
       resp = {result:0, onAfterReturn: {}};
-      resp.onAfterReturn['cmd['+ targetNode +']'] = 'sed -i "s/^remote_hosts.*/remote_hosts = '+ nodes.join(',') +'/" /home/jelastic/APP/test';
+      resp.onAfterReturn['cmd['+ targetNode +']'] = 'sed -i "s/^remote_hosts.*/remote_hosts = '+ nodes.join(',') +'/" ~/apache-jmeter/bin/jmeter.properties';
       return resp;
     nodeGroup: workers
     targetNode: cp
