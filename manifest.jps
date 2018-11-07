@@ -38,6 +38,11 @@ onInstall:
       unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
     
   - setupRemoteHosts
+  
+  - forEach(i:nodes.workers):
+      setupRMIHost:
+        id: "${@i.id}"
+
 
 actions:
 
@@ -53,3 +58,6 @@ actions:
       return resp;
     nodeGroup: workers
     targetNode: cp
+  
+  setupRMIHost:
+    cmd[${this.id}]: sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
