@@ -14,6 +14,9 @@ nodes:
   - nodeType: javaengine
     cloudlets: 8
     nodeGroup: cp
+    nodeGroupData:
+      validation:
+        maxCount: 1
     links: worker:worker
     displayName: Master
 
