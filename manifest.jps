@@ -34,8 +34,8 @@ onInstall:
     name: Jmeter
   
   - cmd[cp,workers]: |-
-      wget http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip -O /tmp/apache-jmeter.zip
-      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.0/ ~/apache-jmeter
+      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
+      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
     
   - setupRemoteHosts
 
