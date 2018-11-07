@@ -12,6 +12,7 @@ baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 nodes:
   - nodeType: javaengine
+    tag: jdk-9.0.4
     cloudlets: 8
     nodeGroup: cp
     nodeGroupData:
@@ -21,6 +22,7 @@ nodes:
     displayName: Master
 
   - nodeType: javaengine
+    tag: jdk-9.0.4
     cloudlets: 16
     nodeGroup: workers
     metadata:
@@ -42,7 +44,6 @@ onInstall:
   - forEach(i:nodes.workers):
       setupRMIHost:
         id: "${@i.id}"
-
 
 actions:
 
