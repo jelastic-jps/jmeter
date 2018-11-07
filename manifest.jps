@@ -32,4 +32,21 @@ onInstall:
       archive: http://apache.ip-connect.vn.ua/jmeter/binaries/apache-jmeter-5.0.zip
       name: apache-jmeter.zip
       context: ROOT
+  - setupRemoteHosts
 
+
+actions:
+  setupRemoteHosts:
+    script: |
+      var resp = jelastic.env.control.GetEnvInfo('${env.envName}', session);
+      if (resp.result != 0) return resp;
+      var nodes = [];
+      for (var i = 0, n = resp.nodes; i < n.length; i++)
+        n[i].nodeGroup == nodeGroup ? nodes.push('node' + n[i].id + ':24000') : 0
+      resp = {result:0, onAfterReturn: {}};
+      resp.onAfterReturn['cmd['+ targetNode +']'] = 'sed -i "s/loose-group_replication_group_seeds.*/loose-group_replication_group_seeds = '+ nodes.join(',') +'/" /home/jelastic/APP/test';
+      return resp;
+    nodeGroup: worker
+    targetNode: cp
+ 
+ 
