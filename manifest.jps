@@ -135,8 +135,8 @@ actions:
   setConfig:
     cmd [cp]: |- 
       cp ~/basic_test_plan.jmx.template ${globals.TEST_PLAN}
-      export proto="$(echo ${globals.siteUrl} | awk -F"://" '{ print $1}')"; sed -i "s/_PROTOCOL_/${proto}/g" ${globals.TEST_PLAN}
-      export host="$(echo ${globals.siteUrl} | awk -F"://" '{ print $2}')"; sed -i "s/_HOST_/${host}/g" ${globals.TEST_PLAN}
+      export proto="$(echo ${settings.siteUrl} | awk -F"://" '{ print $1}')"; sed -i "s/_PROTOCOL_/${proto}/g" ${globals.TEST_PLAN}
+      export host="$(echo ${settings.siteUrl} | awk -F"://" '{ print $2}')"; sed -i "s/_HOST_/${host}/g" ${globals.TEST_PLAN}
       sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ${globals.TEST_PLAN}
       sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ${globals.TEST_PLAN}
       sed -i "s/_DURATION_/${settings.duration}/g" ${globals.TEST_PLAN}
