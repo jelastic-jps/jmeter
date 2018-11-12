@@ -126,7 +126,7 @@ actions:
       - echo /root/test.sh"
   stopTests:
     cmd [cp]:
-      - pkill -f firefox 2 >> ${globals.LOG} 1 >> ${globals.LOG}
+      - pkill -f jmeter 2 >> ${globals.LOG} 1 >> ${globals.LOG}
       - echo 'Tests are stopped' >> ${globals.LOG}
   setConfig:
     cmd [cp]: |- 
