@@ -11,6 +11,7 @@ logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/im
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
+  TEST_PLAN: ~/${settings.siteUrl}_${settings.threadCount}_${settings.duration}.jmx
   LOG: /var/log/autotests.log
   LAUNCH_LOG: /var/log/autotests_journal.log
   LAUNCH_LOG_TEMP: /var/log/autotests_journal_temp.log
@@ -43,7 +44,7 @@ settings:
       inputType: string
       default: https://example.com/
       regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
-      regexText: 'Incorrect Link (example: http(s)://jelastic.com/)'
+      regexText: 'Incorrect Link (example: http(s)://example.com/)'
       required: true
     - name: threadCount
       caption: Thread Count (VU)
@@ -103,6 +104,9 @@ onInstall:
   - forEach(i:nodes.workers):
       setupRMIHost:
         id: "${@i.id}"
+  - cmd[cp]:
+    - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
+
 
 actions:
   setupRemoteHosts:
@@ -130,4 +134,4 @@ actions:
       - echo 'Tests are stopped' >> ${globals.LOG}
   setConfig:
     cmd [cp]: |- 
-      echo test
+      cp ~/basic_test_plan.jmx.template ~/${settings.siteUrl}_${settings.threadCount}_${settings.duration}.jmx
