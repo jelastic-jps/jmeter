@@ -10,6 +10,11 @@ description: Jmeter Cluster.
 logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
+globals:
+  LOG: /var/log/autotests.log
+  LAUNCH_LOG: /var/log/autotests_journal.log
+  LAUNCH_LOG_TEMP: /var/log/autotests_journal_temp.log
+
 nodes:
   - nodeType: javaengine
     tag: jdk-9.0.4
@@ -19,6 +24,7 @@ nodes:
       validation:
         maxCount: 1
     links: worker:worker
+    addons: options
     displayName: Master
 
   - nodeType: javaengine
@@ -29,8 +35,61 @@ nodes:
       layer: workers
     displayName: Workers
 
-onInstall:
-  
+settings:
+    fields:
+    - name: siteUrl
+      caption: Site URL
+      type: string
+      inputType: string
+      default: https://example.com/
+      regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
+      regexText: 'Incorrect Link (example: http(s)://jelastic.com/)'
+      required: true
+    - name: threadCount
+      caption: Thread Count (VU)
+      type: string
+      inputType: string
+      default: 10
+      required: true
+    - name: duration
+      caption: Test Duration in sec
+      type: string
+      inputType: string
+      default: 300
+      required: true
+    - name: rampup
+      caption: RamPUP
+      type: string
+      inputType: string
+      default: 60
+      required: true
+    - type: string
+      inputType: text
+      name: email
+      caption: Report to
+      placeholder: Your@email.com
+      required: true
+      default: "${user.email}"
+
+addons:
+  - id: options
+    buttons:
+    - procedure: runTests
+      caption: Run tests
+      logsPath: "/var/log/autotests.log"
+      successText: Autotests are launched.
+    - procedure: stopTests
+      caption: Stop tests
+      logsPath: "/var/log/autotests.log"
+      successText: Autotests are stopped
+    - settings: main
+      procedure: setConfig
+      caption: Change Test Plan
+      logsPath: "/var/log/autotests.log"
+      submitButtonText: Apply
+      successText: Test plan is successfully applied.
+
+onInstall:  
   - script[workers]: "${baseUrl}/scripts/firewallRules.js"
     ports: '24000'
     name: Jmeter
@@ -46,7 +105,6 @@ onInstall:
         id: "${@i.id}"
 
 actions:
-
   setupRemoteHosts:
     script: |
       var resp = jelastic.env.control.GetEnvInfo('${env.envName}', session);
@@ -62,3 +120,14 @@ actions:
   
   setupRMIHost:
     cmd[${this.id}]: sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
+
+  runTests:
+    cmd [cp]:
+      - echo /root/test.sh"
+  stopTests:
+    cmd [cp]:
+      - pkill -f firefox 2 >> ${globals.LOG} 1 >> ${globals.LOG}
+      - echo 'Tests are stopped' >> ${globals.LOG}
+  setConfig:
+    cmd [cp]: |- 
+      echo test
