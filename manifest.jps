@@ -11,7 +11,7 @@ logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/im
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
-  TEST_PLAN: ~/${settings.siteUrl}_${settings.threadCount}_${settings.duration}.jmx
+  TEST_PLAN: ~/${settings.host}_${settings.threadCount}_${settings.duration}.jmx
   LOG: /var/log/autotests.log
   LAUNCH_LOG: /var/log/autotests_journal.log
   LAUNCH_LOG_TEMP: /var/log/autotests_journal_temp.log
@@ -38,13 +38,19 @@ nodes:
 
 settings:
     fields:
-    - name: siteUrl
-      caption: Site URL
+    - name: host
+      caption: Host
       type: string
       inputType: string
       default: https://example.com/
       regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
       regexText: 'Incorrect Link (example: http(s)://example.com/)'
+      required: true
+    - name: protocol
+      caption: Protocol
+      type: string
+      inputType: string
+      default: http
       required: true
     - name: threadCount
       caption: Thread Count (VU)
@@ -135,8 +141,8 @@ actions:
   setConfig:
     cmd [cp]: |- 
       cp ~/basic_test_plan.jmx.template ${globals.TEST_PLAN}
-      export proto="$(echo ${settings.siteUrl} | awk -F"://" '{ print $1}')"; sed -i "s/_PROTOCOL_/${proto}/g" ${globals.TEST_PLAN}
-      export host="$(echo ${settings.siteUrl} | awk -F"://" '{ print $2}')"; sed -i "s/_HOST_/${host}/g" ${globals.TEST_PLAN}
+      sed -i "s/_HOST_/${settings.host}/g" ${globals.TEST_PLAN}
+      sed -i "s/_PROTOCOL_/${settings.protocol}/g" ${globals.TEST_PLAN}
       sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ${globals.TEST_PLAN}
       sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ${globals.TEST_PLAN}
       sed -i "s/_DURATION_/${settings.duration}/g" ${globals.TEST_PLAN}
