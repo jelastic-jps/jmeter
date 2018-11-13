@@ -11,7 +11,7 @@ logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/im
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
-  TEST_PLAN: ~/${settings.host}_${settings.threadCount}_${settings.duration}
+  TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
   LOG: ~/autotests.log
   LAUNCH_LOG: ~/autotests_journal.log
   LAUNCH_LOG_TEMP: ~/autotests_journal_temp.log
@@ -42,7 +42,7 @@ settings:
       caption: Host
       type: string
       inputType: string
-      default: https://example.com/
+      default: example.com
       regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
       regexText: 'Incorrect Link (example: http(s)://example.com/)'
       required: true
