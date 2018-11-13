@@ -135,7 +135,7 @@ actions:
   runTests:
     - stopTests
     - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server &>> ${globals.LOG} 
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}.jmx -l ~/${globals.TEST_PLAN}.csv &>> ~/${globals.TEST_PLAN}.log
+    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ~/${globals.TEST_PLAN} &>> ~/${globals.TEST_PLAN}.log
 
   stopTests:
     cmd [cp,workers]:
@@ -143,11 +143,12 @@ actions:
       - pkill -f java 2 >> ${globals.LOG} 1 >> ${globals.LOG}
       - echo 'Tests are stopped' >> ${globals.LOG}
   setConfig:
-    cmd [cp]: |- 
-      cp ~/basic_test_plan.jmx.template ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_HOST_/${settings.host}/g" ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_PROTOCOL_/${settings.protocol}/g" ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_DURATION_/${settings.duration}/g" ~/${globals.TEST_PLAN}.jmx
-      sed -i "s/_PATH_/\//g" ~/${globals.TEST_PLAN}.jmx
+    cmd [cp]: |-
+      mkdir -p ~/${globals.TEST_PLAN}
+      cp ~/basic_test_plan.jmx.template ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_HOST_/${settings.host}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_PROTOCOL_/${settings.protocol}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_DURATION_/${settings.duration}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+      sed -i "s/_PATH_/\//g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
