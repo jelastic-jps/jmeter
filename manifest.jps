@@ -115,11 +115,13 @@ onInstall:
   - setupRemoteHosts
   
   - forEach(i:nodes.workers):
-      setupRMIHost:
-        id: "${@i.id}"
+      - setupRMIHost:
+          id: "${@i.id}"
+      - setupOPTSjava:
+          id: "${@i.id}"
+
   - cmd[cp]:
     - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
-
 
 actions:
   setupRemoteHosts:
@@ -139,6 +141,11 @@ actions:
     cmd[${this.id}]: |-
       sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
       sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
+
+  setupOPTSjava:
+    cmd[${this.id}]: |-
+      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/apache-jmeter/bin/jmeter
+      sed -i "s/^HEAP=.*/HEAP=\"-Xms1024m -Xmx1024m\"/g" ~/apache-jmeter/bin/jmeter
 
   runTests:
     - stopTests
