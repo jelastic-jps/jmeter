@@ -83,16 +83,16 @@ addons:
     buttons:
     - procedure: runTests
       caption: Run tests
-      logsPath: "/var/log/autotests.log"
+      logsPath: "~/${globals.TEST_PLAN}.log"
       successText: Autotests are launched.
     - procedure: stopTests
       caption: Stop tests
-      logsPath: "/var/log/autotests.log"
+      logsPath: "${globals.LOG}"
       successText: Autotests are stopped
     - settings: main
       procedure: setConfig
       caption: Change Test Plan
-      logsPath: "/var/log/autotests.log"
+      logsPath: "${globals.LOG}"
       submitButtonText: Apply
       successText: Test plan is successfully applied.
 
@@ -134,12 +134,13 @@ actions:
 
   runTests:
     - stopTests
-    - cmd[workers]: bash ~/apache-jmeter/bin/jmeter-server &
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}.jmx -l ~/${globals.TEST_PLAN}.csv
+    - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server &>> ${globals.LOG} 
+    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}.jmx -l ~/${globals.TEST_PLAN}.csv &>> ~/${globals.TEST_PLAN}.log
 
   stopTests:
     cmd [cp,workers]:
       - pkill -f jmeter 2 >> ${globals.LOG} 1 >> ${globals.LOG}
+      - pkill -f java 2 >> ${globals.LOG} 1 >> ${globals.LOG}
       - echo 'Tests are stopped' >> ${globals.LOG}
   setConfig:
     cmd [cp]: |- 
