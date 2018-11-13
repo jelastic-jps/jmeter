@@ -13,9 +13,7 @@ baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 globals:
   OUTPUT_DIR: /var/www/webroot/ROOT
   TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
-  LOG: ~/autotests.log
-  LAUNCH_LOG: ~/autotests_journal.log
-  LAUNCH_LOG_TEMP: ~/autotests_journal_temp.log
+  LOG: /tmp/autotests.log
 
 nodes:
   - nodeType: nginxphp
@@ -83,7 +81,7 @@ addons:
     buttons:
     - procedure: runTests
       caption: Run tests
-      logsPath: "~/${globals.TEST_PLAN}.log"
+      logsPath: "${globals.LOG}"
       successText: Autotests are launched.
     - procedure: stopTests
       caption: Stop tests
@@ -97,8 +95,8 @@ addons:
       successText: Test plan is successfully applied.
 
 onInstall:  
-  - script[workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '24000'
+  - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
+    ports: '1099'
     name: Jmeter
 
   - cmd[cp]: yum install java-1.8.0-openjdk -y
@@ -138,17 +136,19 @@ actions:
     targetNode: cp
   
   setupRMIHost:
-    cmd[${this.id}]: sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
+    cmd[${this.id}]: |-
+      sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
+      sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
 
   runTests:
     - stopTests
-    - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server & >> /tmp/test.log
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ${globals.OUTPUT_DIR}/${globals.TEST_PLAN} & >> /tmp/test.log
+    - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server & >> ${globals.LOG}
+    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ${globals.OUTPUT_DIR}/${globals.TEST_PLAN} >> ${globals.LOG}
 
   stopTests:
     cmd [cp,workers]:
-      - pkill -f jmeter 2 >> ${globals.LOG} 1 >> ${globals.LOG}
-      - pkill -f java 2 >> ${globals.LOG} 1 >> ${globals.LOG}
+      - pkill jmeter >> ${globals.LOG}
+      - pkill java >> ${globals.LOG}
       - echo 'Tests are stopped' >> ${globals.LOG}
   setConfig:
     cmd [cp]: |-
