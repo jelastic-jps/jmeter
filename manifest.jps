@@ -107,8 +107,6 @@ onInstall:
   - cmd[cp]: |-
       rm -rf ${globals.OUTPUT_DIR}/*
       wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
       sudo /etc/init.d/nginx restart
 
   - cmd[cp,workers]: |-
