@@ -11,10 +11,10 @@ logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/im
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
-  TEST_PLAN: ~/${settings.host}_${settings.threadCount}_${settings.duration}.jmx
+  TEST_PLAN: ~/${settings.host}_${settings.threadCount}_${settings.duration}
   LOG: ~/autotests.log
-  LAUNCH_LOG: /var/log/autotests_journal.log
-  LAUNCH_LOG_TEMP: /var/log/autotests_journal_temp.log
+  LAUNCH_LOG: ~/autotests_journal.log
+  LAUNCH_LOG_TEMP: ~/autotests_journal_temp.log
 
 nodes:
   - nodeType: javaengine
