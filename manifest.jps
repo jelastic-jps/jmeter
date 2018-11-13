@@ -11,14 +11,14 @@ logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/im
 baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
+  OUTPUT_DIR: /var/www/webroot/ROOT
   TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
   LOG: ~/autotests.log
   LAUNCH_LOG: ~/autotests_journal.log
   LAUNCH_LOG_TEMP: ~/autotests_journal_temp.log
 
 nodes:
-  - nodeType: javaengine
-    tag: jdk-9.0.4
+  - nodeType: nginxphp
     cloudlets: 8
     nodeGroup: cp
     nodeGroupData:
@@ -100,7 +100,17 @@ onInstall:
   - script[workers]: "${baseUrl}/scripts/firewallRules.js"
     ports: '24000'
     name: Jmeter
-  
+
+  - cmd[cp]: yum install java-1.8.0-openjdk -y
+    user: root
+
+  - cmd[cp]: |-
+      rm -rf ${globals.OUTPUT_DIR}/*
+      wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
+      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
+      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
+      sudo /etc/init.d/nginx restart
+
   - cmd[cp,workers]: |-
       wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
       unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
@@ -135,7 +145,7 @@ actions:
   runTests:
     - stopTests
     - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server & >> /tmp/test.log
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ~/${globals.TEST_PLAN} & >> /tmp/test.log
+    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ${globals.OUTPUT_DIR}/${globals.TEST_PLAN} & >> /tmp/test.log
 
   stopTests:
     cmd [cp,workers]:
