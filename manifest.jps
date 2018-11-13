@@ -94,6 +94,21 @@ addons:
       submitButtonText: Apply
       successText: Test plan is successfully applied.
 
+onAfterScaleOut[workers]:
+  - forEach(event.response.nodes):
+    - cmd[${@i.id}]: |-
+        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
+        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
+        sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
+    - setupRemoteHosts
+    - setupRMIHost:
+        id: "${@i.id}"
+    - setupOPTSjava:
+        id: "${@i.id}"
+
+onAfterScaleIn[workers]:
+  - setupRemoteHosts
+
 onInstall:  
   - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
     ports: '1099'
