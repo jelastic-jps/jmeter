@@ -18,6 +18,7 @@ globals:
 nodes:
 
   - nodeType: javaengine
+    extip: true
     tag: jdk-9.0.4
     cloudlets: 16
     nodeGroup: workers
@@ -26,7 +27,7 @@ nodes:
     displayName: Workers
 
 onInstall:  
-  - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
+  - script[workers]: "${baseUrl}/scripts/firewallRules.js"
     ports: '1099'
     name: Jmeter
 
@@ -40,9 +41,6 @@ onInstall:
           id: "${@i.id}"
       - setupOPTSjava:
           id: "${@i.id}"
-
-  - cmd[cp]:
-    - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
 
 actions:
   
