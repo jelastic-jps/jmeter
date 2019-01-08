@@ -1,0 +1,58 @@
+---
+jpsType: install
+jpsVersion: '1.1'
+name: Jmeter Cluster
+categories:
+  - apps/popular
+  - apps/clusters
+  - apps/dev-and-admin-tools
+description: Jmeter Cluster.
+logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
+baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
+
+globals:
+  OUTPUT_DIR: /var/www/webroot/ROOT
+  TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
+  LOG: /tmp/autotests.log
+
+nodes:
+
+  - nodeType: javaengine
+    tag: jdk-9.0.4
+    cloudlets: 16
+    nodeGroup: workers
+    metadata:
+      layer: workers
+    displayName: Workers
+
+onInstall:  
+  - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
+    ports: '1099'
+    name: Jmeter
+
+  - cmd[workers]: |-
+      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
+      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
+      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
+    
+  - forEach(i:nodes.workers):
+      - setupRMIHost:
+          id: "${@i.id}"
+      - setupOPTSjava:
+          id: "${@i.id}"
+
+  - cmd[cp]:
+    - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
+
+actions:
+  
+  setupRMIHost:
+    cmd[${this.id}]: |-
+      sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
+      sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
+
+  setupOPTSjava:
+    cmd[${this.id}]: |-
+      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/apache-jmeter/bin/jmeter
+      sed -i "s/^HEAP=.*/HEAP=\"-Xms1024m -Xmx1024m\"/g" ~/apache-jmeter/bin/jmeter
+
