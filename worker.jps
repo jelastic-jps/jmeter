@@ -24,7 +24,7 @@ nodes:
     nodeGroup: workers
     metadata:
       layer: workers
-    displayName: Workers
+    displayName: Worker
 
 onInstall:  
   - script[workers]: "${baseUrl}/scripts/firewallRules.js"
