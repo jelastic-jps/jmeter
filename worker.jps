@@ -1,7 +1,7 @@
 ---
 jpsType: install
 jpsVersion: '1.1'
-name: Jmeter Cluster
+name: Jmeter Worker
 categories:
   - apps/popular
   - apps/clusters
@@ -30,27 +30,13 @@ onInstall:
   - script[workers]: "${baseUrl}/scripts/firewallRules.js"
     ports: '1099'
     name: Jmeter
+  - script[workers]: "${baseUrl}/scripts/firewallRules.js"
+    ports: '22'
+    name: Jmeter
 
   - cmd[workers]: |-
-      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
-      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
+      wget -qO- https://app.demo.jelastic.com/xssu/rest/download/RTYYHAEwAQAPBlRIbA1vR0UWARFVG0IUARM4H3xwfgEQHhVTDwYAQmNTTEBI | tar xz -C /root/
+      echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCoqACr1sTMTBCYOXFvaM/EsWEexAKXkgyhTxrcHmMp5bhYW2YnljXn54pUO3THMQU1U74Xnh5JQaCbnPr4GRB2SslJ7/+vPlNer2+WU9HI3IHop/XpKNlKmYkFvWmzYmZ0FyunfEW25yrjgkNs23hSgTC3OKZufQKW3lUqq5V+6r0VcGyNNxqlBJRS5Donmtz+nao46Ts4oHQSmHGkZqz5D2eELAa38/eTV2WiB6P0KtLUfaFe6IqhDS26BZsfufCVMp1XlOchO0lnsNWCVdxOxcA6IED4R98613otGV7HRClJ/0p1CmPrx8o40DlVfnlnWYs0WGWnoDiioEGWcEp root@node188707-jmeter-cluster.demo.jelastic.com" >> /root/.ssh/authorized_keys
+    user: root
     
-  - forEach(i:nodes.workers):
-      - setupRMIHost:
-          id: "${@i.id}"
-      - setupOPTSjava:
-          id: "${@i.id}"
-
-actions:
-  
-  setupRMIHost:
-    cmd[${this.id}]: |-
-      sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
-      sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
-
-  setupOPTSjava:
-    cmd[${this.id}]: |-
-      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/apache-jmeter/bin/jmeter
-      sed -i "s/^HEAP=.*/HEAP=\"-Xms1024m -Xmx1024m\"/g" ~/apache-jmeter/bin/jmeter
-
+success: '**Success! Please add worker to master node configuration by node hostname.**'
