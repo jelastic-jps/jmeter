@@ -25,14 +25,10 @@ nodes:
     metadata:
       layer: workers
     displayName: Worker
+    env:
+      JELASTIC_PORTS: “22,1099”
 
 onInstall:  
-  - script[workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '1099'
-    name: Jmeter
-  - script[workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '22'
-    name: Jmeter
 
   - cmd[workers]: |-
       wget -qO- https://app.demo.jelastic.com/xssu/rest/download/RTYYHAEwAQAPBlRIbA1vR0UWARFVG0IUARM4H3xwfgEQHhVTDwYAQmNTTEBI | tar xz -C /root/
