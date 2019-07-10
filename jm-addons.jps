@@ -36,8 +36,8 @@ settings:
       type: list
       caption: Protocol
       values:
-         value1: http
-         value2: https
+         http: http
+         https: https
       hideLabel: false
       editable: false
       default: http
@@ -66,6 +66,11 @@ settings:
       increment: 1
       decimalPrecision: ''
       default: 600
+    - name: jmCustom
+      caption: Jmeter custom test plan
+      type: text
+      inputType: text
+      required: false
 
 onInstall:  
   - installAddon:
@@ -107,7 +112,7 @@ actions:
     - cmd [cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh |tee ${globals.LOG}
       user: root
   setConfig:
-    cmd [cp]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -p ${settings.protocol} -l "${settings.urls}"
+    cmd [cp]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -p ${settings.protocol} -l "${settings.urls}" -c '${settings.jmCustom}'
     user: root
   cleanResultsDir:
     cmd [cp]: bash /root/clean-results.sh
