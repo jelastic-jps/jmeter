@@ -93,7 +93,7 @@ Value range -  from 1 to 3600."
       inputType: text
       required: false
     - name: jmCustom
-      caption: Jmeter custom config
+      caption: Jmeter Custom Config
       tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here.</br> If filed is not empty all other parameters will be ignored"
       type: text
       inputType: text
