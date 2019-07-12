@@ -8,16 +8,16 @@ categories:
   - apps/dev-and-admin-tools
 description: Jmeter Cluster.
 logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
-baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
+baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
 
 globals:
-  OUTPUT_DIR: /var/www/webroot/ROOT
-  TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
-  LOG: /tmp/autotests.log
+  WEBROOT_DIR: /var/www/webroot/ROOT
+  JM_DIR: /root
+  LOG: /var/log/nginx/autotests.log
 
 nodes:
   - nodeType: nginxphp
-    cloudlets: 8
+    cloudlets: 16
     nodeGroup: cp
     nodeGroupData:
       validation:
@@ -33,6 +33,8 @@ nodes:
     metadata:
       layer: workers
     displayName: Workers
+    count: 2
+    scalingMode: STATELESS
 
 settings:
     fields:
@@ -44,37 +46,51 @@ settings:
       regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
       regexText: 'Incorrect Link (example: http(s)://example.com/)'
       required: true
+    - name: urls
+      caption: Urls
+      type: text
+      inputType: text
+      default: /index.php
+      required: false
     - name: protocol
+      type: list
       caption: Protocol
-      type: string
-      inputType: string
+      values:
+         http: http
+         https: https
+      hideLabel: false
+      editable: false
       default: http
       required: true
     - name: threadCount
       caption: Thread Count (VU)
-      type: string
-      inputType: string
-      default: 10
-      required: true
+      type: spinner
+      min: 1
+      max: 10000
+      increment: 1
+      decimalPrecision: ''
+      default: 50
     - name: duration
       caption: Test Duration in sec
-      type: string
-      inputType: string
-      default: 300
-      required: true
+      type: spinner
+      min: 60
+      max: 3600
+      increment: 1
+      decimalPrecision: ''
+      default: 600
     - name: rampup
-      caption: RamPUP
-      type: string
-      inputType: string
-      default: 60
-      required: true
-    - type: string
+      caption: RamPUP in sec
+      type: spinner
+      min: 1
+      max: 3600
+      increment: 1
+      decimalPrecision: ''
+      default: 600
+    - name: jmCustom
+      caption: Jmeter custom test plan
+      type: text
       inputType: text
-      name: email
-      caption: Report to
-      placeholder: Your@email.com
-      required: true
-      default: "${user.email}"
+      required: false
 
 addons:
   - id: options
@@ -82,14 +98,18 @@ addons:
     - procedure: runTests
       caption: Run tests
       logsPath: "${globals.LOG}"
-      successText: Autotests are launched.
+      successText: Autotest is running
     - procedure: stopTests
       caption: Stop tests
       logsPath: "${globals.LOG}"
       successText: Autotests are stopped
+    - procedure: cleanResultsDir
+      caption: Clean results
+      logsPath: "${globals.LOG}"
+      successText: Results directory was cleaned
     - settings: main
       procedure: setConfig
-      caption: Change Test Plan
+      caption: Change config
       logsPath: "${globals.LOG}"
       submitButtonText: Apply
       successText: Test plan is successfully applied.
@@ -97,88 +117,100 @@ addons:
 onAfterScaleOut[workers]:
   - forEach(event.response.nodes):
     - cmd[${@i.id}]: |-
-        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
-        sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
-    - setupRemoteHosts
-    - setupRMIHost:
-        id: "${@i.id}"
-    - setupOPTSjava:
-        id: "${@i.id}"
+        wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
+        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
+        sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
+        sed -i "s/^HEAP=.*/HEAP=\"-Xms2048m -Xmx2048m\"/g" ~/jmeter/bin/jmeter
+        sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=9/g" ~/jmeter/bin/jmeter
+      user: root
+    - cmd[cp]: cat /root/.ssh/authorized_keys
+      user: root
+    - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
+      user: root
+  - setupRemoteHosts
 
 onAfterScaleIn[workers]:
   - setupRemoteHosts
 
 onInstall:  
   - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '1099'
+    ports: '22'
     name: Jmeter
 
-  - cmd[cp]: yum install java-1.8.0-openjdk -y
-    user: root
-
-  - cmd[cp]: |-
-      rm -rf ${globals.OUTPUT_DIR}/*
-      wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-      sudo /etc/init.d/nginx restart
-
-  - cmd[cp,workers]: |-
-      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
-      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
-    
+  - setupJmeter
   - setupRemoteHosts
-  
-  - forEach(i:nodes.workers):
-      - setupRMIHost:
-          id: "${@i.id}"
-      - setupOPTSjava:
-          id: "${@i.id}"
-
-  - cmd[cp]:
-    - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
+  - setupAuthKey
+  - setupJmeterOptsWorkers
+  - setupJmeterOptsCP
+  - setupCpConfigs
+  - setConfig
 
 actions:
+  setupJmeter:
+    - cmd[cp,workers]: |-
+        wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
+        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
+      user: root
+      
+  setupCpConfigs:
+    - cmd[cp]: |-
+        yum install java-1.8.0-openjdk  epel-release xmlstarlet -y -q
+        rm -rf ${globals.WEBROOT_DIR}/*
+        mkdir -p ${globals.WEBROOT_DIR}/results
+        wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
+        /etc/init.d/nginx restart
+        wget ${baseUrl}/configs/TEST_PLAN.template -O ~/TEST_PLAN.template
+        wget ${baseUrl}/scripts/clean-results.sh -O ~/clean-results.sh
+        wget ${baseUrl}/scripts/kill-workers.sh -O ~/kill-workers.sh
+        wget ${baseUrl}/scripts/run-workers.sh -O ~/run-workers.sh
+        wget ${baseUrl}/scripts/prepare_plan.sh -O ~/prepare_plan.sh
+        wget ${baseUrl}/scripts/index.php -O  ${globals.WEBROOT_DIR}/index.php
+        touch ${globals.WEBROOT_DIR}/jmeter-run.log
+        ln -s ${globals.WEBROOT_DIR}/jmeter-run.log ${globals.LOG}
+        chmod +x ~/*.sh
+      user: root
+    
   setupRemoteHosts:
-    script: |
-      var resp = jelastic.env.control.GetEnvInfo('${env.envName}', session);
-      if (resp.result != 0) return resp;
-      var nodes = [];
-      for (var i = 0, n = resp.nodes; i < n.length; i++)
-        n[i].nodeGroup == nodeGroup ? nodes.push('node' + n[i].id + ':1099') : 0
-      resp = {result:0, onAfterReturn: {}};
-      resp.onAfterReturn['cmd['+ targetNode +']'] = 'sed -i "s/^remote_hosts.*/remote_hosts = '+ nodes.join(',') +'/" ~/apache-jmeter/bin/jmeter.properties';
-      return resp;
-    nodeGroup: workers
-    targetNode: cp
-  
-  setupRMIHost:
-    cmd[${this.id}]: |-
-      sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
-      sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
+    - cmd[cp]: echo "${nodes.workers.join(address, \n)}" > /root/workers_list
+      user: root
+      
+  setupAuthKey:
+    - cmd[cp]: cat /root/.ssh/authorized_keys
+      user: root
+    - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
+      user: root
 
-  setupOPTSjava:
-    cmd[${this.id}]: |-
-      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/apache-jmeter/bin/jmeter
-      sed -i "s/^HEAP=.*/HEAP=\"-Xms1024m -Xmx1024m\"/g" ~/apache-jmeter/bin/jmeter
+  setupJmeterOptsWorkers:
+    cmd[workers]: |-
+      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
+      sed -i "s/^HEAP=.*/HEAP=\"-Xms2048m -Xmx2048m\"/g" ~/jmeter/bin/jmeter
+      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=9/g" ~/jmeter/bin/jmeter
+    user: root
+    
+  setupJmeterOptsCP:
+    cmd[cp]: |-
+      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=8/g" ~/jmeter/bin/jmeter
+      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
+      sed -i "s/^HEAP=.*/HEAP=\"-Xms4096m -Xmx4096m\"/g" ~/jmeter/bin/jmeter
+      sed -e '/remote_hosts=/ s/^#*/#/' -i ~/jmeter/bin/jmeter.properties
+      sed -i "s/^#client.tries=.*/client.tries=3/g" ~/jmeter/bin/jmeter.properties
+      sed -i "s/^#client.retries_delay=.*/client.retries_delay=5000/g" ~/jmeter/bin/jmeter.properties
+      sed -i "s/^#client.continue_on_fail=.*/client.continue_on_fail=true/g" ~/jmeter/bin/jmeter.properties
+    user: root
 
   runTests:
-    - stopTests
-    - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server & >> ${globals.LOG}
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ${globals.OUTPUT_DIR}/${globals.TEST_PLAN} >> ${globals.LOG}
+    - cmd[cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}-jmeter |tee ${globals.LOG}
+      user: root
+      return: 
+         type: info
+         message: Jmeter running test progress bar available by url [${env.url}](${env.url})
 
   stopTests:
-    cmd [cp,workers]:
-      - pkill jmeter >> ${globals.LOG}
-      - pkill java >> ${globals.LOG}
-      - echo 'Tests are stopped' >> ${globals.LOG}
+    - cmd [cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh |tee ${globals.LOG}
+      user: root
   setConfig:
-    cmd [cp]: |-
-      mkdir -p ~/${globals.TEST_PLAN}
-      cp ~/basic_test_plan.jmx.template ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_HOST_/${settings.host}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_PROTOCOL_/${settings.protocol}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_DURATION_/${settings.duration}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_PATH_/\//g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+    cmd [cp]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -p ${settings.protocol} -l "${settings.urls}" -c '${settings.jmCustom}'
+    user: root
+  cleanResultsDir:
+    cmd [cp]: bash /root/clean-results.sh
+    user: root
