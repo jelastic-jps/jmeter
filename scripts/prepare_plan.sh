@@ -65,6 +65,8 @@ EOF
     export VAR1
 
     perl -lpe 'print "$ENV{VAR1}" if $. == 100' $TEMPLATE > $CONFIG
+else
+    cp $TEMPLATE $CONFIG
 fi
 
 # Set users
