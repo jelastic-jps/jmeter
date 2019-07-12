@@ -6,7 +6,7 @@ categories:
   - apps/popular
   - apps/clusters
   - apps/dev-and-admin-tools
-description: Jmeter Cluster.
+description: A tool for performance testing.
 logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
 baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
 
@@ -77,7 +77,9 @@ settings:
       default: 10
     - name: rampup
       caption: Ramp-up Period
-      tooltip: "Ramp-up Period - The time frame (in seconds) for all virtual users to start. For example we specified 100 virtual users and ramp-up time 50 seconds. In this case every one second jmeter will setup 2 virtual users. In case we need to setup all virtual users immediately, just set this parameter to 1.</br> Value range from 1 to 3600."
+      tooltip: "Ramp-up Period - The time frame (in seconds) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 50 seconds, jmeter will set up 2 virtual users each second.</br>
+To set up all virtual users immediately, ramp-up period should be set to 1.</br>
+Value range -  from 1 to 3600."
       type: spinner
       min: 1
       max: 3600
