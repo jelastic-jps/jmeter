@@ -15,7 +15,7 @@ for i in $(cat /root/workers_list);
 do 
    echo "Starting jmeter-worker on $i" >> $JM_LOG
    echo "Run Java on $i"
-   ssh -o StrictHostKeyChecking=no -n -f root@$i "sh -c '/usr/bin/pkill java; /usr/bin/pkill jmeter; bash /root/jmeter/bin/jmeter-server > /dev/null 2>&1 &'"
+   ssh -o StrictHostKeyChecking=no -n -f root@$i "sh -c '/usr/bin/pkill java; /usr/bin/pkill jmeter; bash /root/jmeter/bin/jmeter-server -Jserver.rmi.ssl.disable=true > /dev/null 2>&1 &'"
 done
 
 sleep 10
