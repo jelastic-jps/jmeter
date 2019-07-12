@@ -78,6 +78,7 @@ USERS_COUNT=$(( $USERS_COUNT/$(grep -v "^$" /root/workers_list|wc -l) ))
 [ ! -n "$RAMP_TIME" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.ramp_time']" -v "$RAMP_TIME" $CONFIG
 
 # Set Test Duration
+DURATION=$(( $DURATION*60 ))
 [ ! -n "$DURATION" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.duration']" -v "$DURATION" $CONFIG
 
 # Set domain name
