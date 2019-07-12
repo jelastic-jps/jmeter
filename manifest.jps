@@ -41,17 +41,12 @@ settings:
     - name: host
       caption: Host
       type: string
+      tooltip: Website name
       inputType: string
       default: example.com
       regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
       regexText: 'Incorrect Link (example: http(s)://example.com/)'
       required: true
-    - name: urls
-      caption: Urls
-      type: text
-      inputType: text
-      default: /index.php
-      required: false
     - name: protocol
       type: list
       caption: Protocol
@@ -64,6 +59,7 @@ settings:
       required: true
     - name: threadCount
       caption: Thread Count (VU)
+      tooltip: "Count of Virtual Users, which should be created."
       type: spinner
       min: 1
       max: 10000
@@ -71,23 +67,32 @@ settings:
       decimalPrecision: ''
       default: 50
     - name: duration
-      caption: Test Duration in sec
+      caption: Test Duration
+      tooltip: "Test time duration in minutes. Value should be from 1 to 60 minutes."
       type: spinner
-      min: 60
-      max: 3600
+      min: 1
+      max: 60
       increment: 1
       decimalPrecision: ''
-      default: 600
+      default: 10
     - name: rampup
-      caption: RamPUP in sec
+      caption: Ramp-up Period
+      tooltip: "Ramp-up Period - The time frame (in seconds) for all virtual users to start. For example we specified 100 virtual users and ramp-up time 50 seconds. In this case every one second jmeter will setup 2 virtual users. In case we need to setup all virtual users immediately, just set this parameter to 1.</br> Value range from 1 to 3600."
       type: spinner
       min: 1
       max: 3600
       increment: 1
       decimalPrecision: ''
       default: 600
+    - name: Urls
+      caption: URL List
+      tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
+      type: text
+      inputType: text
+      required: false
     - name: jmCustom
-      caption: Jmeter custom test plan
+      caption: Jmeter custom config
+      tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here.</br> If filed is not empty all other parameters will be ignored"
       type: text
       inputType: text
       required: false
