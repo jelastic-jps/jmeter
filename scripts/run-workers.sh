@@ -43,7 +43,7 @@ cp /root/TEST_PLAN.jmx /var/lib/nginx/$1/TEST_PLAN.jmx
 echo "Starting Master Jmeter server" >> $JM_LOG
 ulimit -n 999999
 
-WORKERS="$(cat workers_list|xargs |sed -e "s/ /:1099,/g:1099")"
+WORKERS="$(cat workers_list|xargs |sed -e "s/ /:1099,/g"):1099"
 [ "x$WORKERS" == "x:1099" ] && WORKERS='' || WORKERS="-R $WORKERS"
 
 bash /root/jmeter/bin/jmeter -Jserver.rmi.ssl.disable=true -n -r -t /var/lib/nginx/$1/TEST_PLAN.jmx -l /var/lib/nginx/$1/TEST_OUTPUT1.csv -e -o /var/www/webroot/ROOT/results/$1 $WORKERS >> $JM_LOG
