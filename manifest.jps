@@ -6,7 +6,7 @@ categories:
   - apps/popular
   - apps/clusters
   - apps/dev-and-admin-tools
-description: A tool for performance testing.
+description: A tool for performance testing
 logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
 baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
 
