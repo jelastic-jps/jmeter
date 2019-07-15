@@ -124,16 +124,17 @@ addons:
       caption: Stop tests
       logsPath: "${globals.LOG}"
       successText: Autotests are stopped
-    - procedure: cleanResultsDir
-      caption: Clean results
-      logsPath: "${globals.LOG}"
-      successText: Results directory was cleaned
     - settings: main
       procedure: setConfig
       caption: Change config
       logsPath: "${globals.LOG}"
       submitButtonText: Apply
       successText: Test plan is successfully applied.
+    menu:
+    - procedure: cleanResultsDir
+      caption: Clean results
+      logsPath: "${globals.LOG}"
+      successText: Results directory was cleaned
 
 onAfterScaleOut[workers]:
   - forEach(event.response.nodes):
