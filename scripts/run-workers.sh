@@ -6,8 +6,12 @@ if [ -z "$1" ]; then
 fi
 
 JM_LOG='/var/www/webroot/ROOT/jmeter-run.log'
-
 truncate -s0 $JM_LOG
+
+NAMESERVER='nameserver 8.8.8.8'
+
+echo $NAMESERVER > /etc/resolv.conf
+
 echo "Kill all master java processes..." >> $JM_LOG
 /usr/bin/pkill java; /usr/bin/pkill jmeter;
 
@@ -16,7 +20,7 @@ do
    iptables -I INPUT -s $i -j ACCEPT
    iptables -I OUTPUT -d $i -j ACCEPT
    IP_FOR_ALLOW=$(ip r g $i |awk -F 'src' '{print $2}'|xargs)
-   ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ConnectionAttempts=2 -n -f root@$i "sh -c 'iptables -I INPUT -s $IP_FOR_ALLOW -j ACCEPT;iptables -I OUTPUT -d $IP_FOR_ALLOW -j ACCEPT;/usr/bin/pkill java; /usr/bin/pkill jmeter; bash /root/jmeter/bin/jmeter-server -Jserver.rmi.ssl.disable=true > /dev/null 2>&1 &'"
+   ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o ConnectionAttempts=2 -n -f root@$i "sh -c 'echo $NAMESERVER > /etc/resolv.conf;iptables -I INPUT -s $IP_FOR_ALLOW -j ACCEPT;iptables -I OUTPUT -d $IP_FOR_ALLOW -j ACCEPT;/usr/bin/pkill java; /usr/bin/pkill jmeter; bash /root/jmeter/bin/jmeter-server -Jserver.rmi.ssl.disable=true > /dev/null 2>&1 &'"
    [ "x$?" == "x0" ] && echo "Add iptables rules and starting jmeter-worker on $i [OK]" >> $JM_LOG || echo "Add iptables rules and starting jmeter-worker on $i [FAILED]" >> $JM_LOG
 done
 
