@@ -108,7 +108,7 @@ settings:
         2:
               - name: jmCustom
                 caption: Jmeter Custom Config
-                tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here.</br> If filed is not empty all other parameters will be ignored"
+                tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here."
                 type: text
                 inputType: text
                 required: true
