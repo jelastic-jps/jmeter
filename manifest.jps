@@ -19,6 +19,8 @@ nodes:
   - nodeType: nginxphp
     cloudlets: 16
     nodeGroup: cp
+    env:
+      JELASTIC_PORTS: 22
     nodeGroupData:
       validation:
         maxCount: 1
@@ -30,6 +32,8 @@ nodes:
     tag: jdk-9.0.4
     cloudlets: 16
     nodeGroup: workers
+    env:
+      JELASTIC_PORTS: 22
     metadata:
       layer: workers
     displayName: Workers
@@ -126,9 +130,9 @@ onAfterScaleOut[workers]:
     - cmd[${@i.id}]: |-
         wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
         unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
-        sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
-        sed -i "s/^HEAP=.*/HEAP=\"-Xms2048m -Xmx2048m\"/g" ~/jmeter/bin/jmeter
-        sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=9/g" ~/jmeter/bin/jmeter
+        wget ${baseUrl}/scripts/jmeter -O ~/jmeter/bin/jmeter
+        chmod +x ~/jmeter/bin/jmeter
+        wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
       user: root
     - cmd[cp]: cat /root/.ssh/authorized_keys
       user: root
@@ -140,15 +144,9 @@ onAfterScaleIn[workers]:
   - setupRemoteHosts
 
 onInstall:  
-  - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '22'
-    name: Jmeter
-
   - setupJmeter
   - setupRemoteHosts
   - setupAuthKey
-  - setupJmeterOptsWorkers
-  - setupJmeterOptsCP
   - setupCpConfigs
   - setConfig
 
@@ -157,6 +155,9 @@ actions:
     - cmd[cp,workers]: |-
         wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
         unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
+        wget ${baseUrl}/scripts/jmeter -O ~/jmeter/bin/jmeter
+        chmod +x ~/jmeter/bin/jmeter
+        wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
       user: root
       
   setupCpConfigs:
@@ -186,24 +187,6 @@ actions:
       user: root
     - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
       user: root
-
-  setupJmeterOptsWorkers:
-    cmd[workers]: |-
-      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
-      sed -i "s/^HEAP=.*/HEAP=\"-Xms2048m -Xmx2048m\"/g" ~/jmeter/bin/jmeter
-      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=9/g" ~/jmeter/bin/jmeter
-    user: root
-    
-  setupJmeterOptsCP:
-    cmd[cp]: |-
-      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=8/g" ~/jmeter/bin/jmeter
-      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/jmeter/bin/jmeter
-      sed -i "s/^HEAP=.*/HEAP=\"-Xms4096m -Xmx4096m\"/g" ~/jmeter/bin/jmeter
-      sed -e '/remote_hosts=/ s/^#*/#/' -i ~/jmeter/bin/jmeter.properties
-      sed -i "s/^#client.tries=.*/client.tries=3/g" ~/jmeter/bin/jmeter.properties
-      sed -i "s/^#client.retries_delay=.*/client.retries_delay=5000/g" ~/jmeter/bin/jmeter.properties
-      sed -i "s/^#client.continue_on_fail=.*/client.continue_on_fail=true/g" ~/jmeter/bin/jmeter.properties
-    user: root
 
   runTests:
     - cmd[cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}-jmeter |tee ${globals.LOG}
