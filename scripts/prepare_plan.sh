@@ -75,6 +75,8 @@ USERS_COUNT=$(( $USERS_COUNT/$(grep -v "^$" /root/workers_list|wc -l) ))
 [ ! -n "$USERS_COUNT" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.num_threads']" -v "$USERS_COUNT" $CONFIG
 
 # Set Rumpup time
+RAMP_TIME=$(( $RAMP_TIME*60 ))
+[ "x$RAMP_TIME" != "x0" ] || RAMP_TIME=1
 [ ! -n "$RAMP_TIME" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.ramp_time']" -v "$RAMP_TIME" $CONFIG
 
 # Set Test Duration
