@@ -86,7 +86,7 @@ Value range -  from 1 to 3600."
       increment: 1
       decimalPrecision: ''
       default: 600
-    - name: Urls
+    - name: urls
       caption: URL List
       tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
       type: text
