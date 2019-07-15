@@ -81,12 +81,12 @@ settings:
       default: 10
     - name: rampup
       caption: Ramp-up Period
-      tooltip: "Ramp-up Period - The time frame (in seconds) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 50 seconds, jmeter will set up 2 virtual users each second.</br>
-To set up all virtual users immediately, ramp-up period should be set to 1.</br>
-Value range -  from 1 to 3600."
+      tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, jmeter will set up 2 virtual users each second.</br>
+To set up all virtual users immediately, ramp-up period should be set to 0.</br>
+Value range -  from 0 to 60."
       type: spinner
-      min: 1
-      max: 3600
+      min: 0
+      max: 60
       increment: 1
       decimalPrecision: ''
       default: 600
