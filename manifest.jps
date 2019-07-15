@@ -25,7 +25,6 @@ nodes:
       validation:
         maxCount: 1
     links: worker:worker
-    addons: options
     displayName: Master
 
   - nodeType: javaengine
@@ -113,29 +112,6 @@ settings:
                 inputType: text
                 required: true
 
-addons:
-  - id: options
-    buttons:
-    - procedure: runTests
-      caption: Run tests
-      logsPath: "${globals.LOG}"
-      successText: Autotest is running
-    - procedure: stopTests
-      caption: Stop tests
-      logsPath: "${globals.LOG}"
-      successText: Autotests are stopped
-    - settings: main
-      procedure: setConfig
-      caption: Change config
-      logsPath: "${globals.LOG}"
-      submitButtonText: Apply
-      successText: Test plan is successfully applied.
-    menu:
-    - procedure: cleanResultsDir
-      caption: Clean results
-      logsPath: "${globals.LOG}"
-      successText: Results directory was cleaned
-
 onAfterScaleOut[workers]:
   - forEach(event.response.nodes):
     - cmd[${@i.id}]: |-
@@ -150,11 +126,14 @@ onAfterScaleOut[workers]:
     - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
       user: root
   - setupRemoteHosts
+  - installJMeterAddon: ${settings.toJSON()}
 
 onAfterScaleIn[workers]:
   - setupRemoteHosts
+  - installJMeterAddon: ${settings.toJSON()}
 
 onInstall:  
+  - installJMeterAddon: ${settings.toJSON()}
   - setupJmeter
   - setupRemoteHosts
   - setupAuthKey
@@ -219,3 +198,52 @@ actions:
   cleanResultsDir:
     cmd [cp]: bash /root/clean-results.sh
     user: root
+    
+  installJMeterAddon:
+      - jps: 
+          id: jmeter-addon
+          name: Jmeter Cluster
+          type: update
+
+          buttons:
+          - action: runTests
+            caption: Run tests
+            logsPath: ${globals.LOG}
+            successText: Autotest is running
+
+          - action: stopTests
+            caption: Stop tests
+            logsPath: ${globals.LOG}
+            successText: Autotests are stopped
+
+          - settings: main
+            action: setConfig
+            caption: Change config
+            logsPath: ${globals.LOG}
+            submitButtonText: Apply
+            successText: Test plan is successfully applied.
+
+          menu:
+          - action: cleanResultsDir
+            caption: Clean results
+            logsPath: ${globals.LOG}
+            successText: Results directory was cleaned
+
+        nodeCount: ${nodes.workers.length}
+        cloudlets: ${nodes.workers.flexibleCloudlets}
+
+        script: |
+          var manifest = eval('(' + MANIFEST + ')');
+          jps = eval('(' + jps + ')');    
+          jps.globals = manifest.globals;
+          jps.actions = manifest.actions;
+          jps.settings = manifest.settings;
+
+          jps.settings.fields[0].showIf['1'][2].max = parseInt((nodeCount * cloudlets) / 0.16, 10);
+
+          return { result : 0, jps: String(jps) };
+
+      - install: 
+          jps: ${response.jps}
+          settings: ${this}
+          nodeGroup: cp
