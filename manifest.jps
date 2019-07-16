@@ -13,26 +13,47 @@ baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
 globals:
   WEBROOT_DIR: /var/www/webroot/ROOT
   JM_DIR: /root
-  LOG: /var/log/nginx/autotests.log
+  LOG: /var/log/autotests.log
+  RESULTS_DIR: /root/jmeter-results
 
 nodes:
   - nodeType: nginxphp
-    cloudlets: 16
+    cloudlets: 6
     nodeGroup: cp
     env:
       JELASTIC_PORTS: 22
     nodeGroupData:
       validation:
         maxCount: 1
-    links: worker:worker
-    displayName: Master
+    #links: worker:worker
+    displayName: Web
 
   - nodeType: javaengine
-    tag: jdk-9.0.4
+    tag: libericajdk-12.0.1
+    cloudlets: 16
+    nodeGroup: master
+    env:
+      JELASTIC_PORTS: 22
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:MaxRAMPercentage=70 -Xms32m
+    nodeGroupData:
+      validation:
+        maxCount: 1
+    displayName: Master
+    volumes:
+      - "/root/jmeter-results"
+    volumeMounts:
+      "/root/jmeter-results":
+        readOnly: false
+        sourcePath: "/var/www/webroot/ROOT"
+        sourceNodeGroup: cp
+
+  - nodeType: javaengine
+    tag: libericajdk-12.0.1
     cloudlets: 16
     nodeGroup: workers
     env:
       JELASTIC_PORTS: 22
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:MaxRAMPercentage=70 -Xms32m
     metadata:
       layer: workers
     displayName: Workers
@@ -50,160 +71,154 @@ settings:
         2: Custom
       showIf:
         1:
-              - name: host
-                caption: Host
-                type: string
-                tooltip: Website name
-                inputType: string
-                default: example.com
-                regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
-                regexText: 'Incorrect Link (example: http(s)://example.com/)'
-                required: true
-              - name: protocol
-                type: list
-                caption: Protocol
-                values:
-                   http: http
-                   https: https
-                hideLabel: false
-                editable: false
-                default: http
-                required: true
-              - name: threadCount
-                caption: Thread Count (VU)
-                tooltip: "Count of Virtual Users, which should be created."
-                type: spinner
-                min: 1
-                max: 10000
-                increment: 1
-                decimalPrecision: ''
-                default: 50
-              - name: duration
-                caption: Test Duration
-                tooltip: "Test time duration in minutes. Value should be from 1 to 60 minutes."
-                type: spinner
-                min: 1
-                max: 60
-                increment: 1
-                decimalPrecision: ''
-                default: 10
-              - name: rampup
-                caption: Ramp-up Period
-                tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, jmeter will set up 2 virtual users each second.</br>
+          - name: host
+            caption: Host
+            type: string
+            tooltip: Website name
+            inputType: string
+            default: http://example.com
+            regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
+            regexText: 'Incorrect Link (example: http(s)://example.com/)'
+            required: true
+          - name: threadCount
+            caption: Thread Count (VU)
+            tooltip: "Count of Virtual Users, which should be created."
+            type: spinner
+            min: 1
+            max: 200
+            increment: 1
+            decimalPrecision: ''
+            default: 50
+          - name: duration
+            caption: Test Duration
+            tooltip: "Test time duration in minutes. Value should be from 1 to 60 minutes."
+            type: spinner
+            min: 1
+            max: 60
+            increment: 1
+            decimalPrecision: ''
+            default: 10
+          - name: rampup
+            caption: Ramp-up Period
+            tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, jmeter will set up 2 virtual users each second.</br>
           To set up all virtual users immediately, ramp-up period should be set to 0.</br>
           Value range -  from 0 to 60."
-                type: spinner
-                min: 0
-                max: 60
-                increment: 1
-                decimalPrecision: ''
-                default: 600
-              - name: urls
-                caption: URL List
-                tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
-                type: text
-                inputType: text
-                required: false
+            type: spinner
+            min: 0
+            max: 60
+            increment: 1
+            decimalPrecision: ''
+            default: 5
+          - name: urls
+            caption: URL List
+            tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
+            type: text
+            inputType: text
+            required: false
         2:
-              - name: jmCustom
-                caption: Jmeter Custom Config
-                tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here."
-                type: text
-                inputType: text
-                required: true
+          - name: jmCustom
+            caption: Jmeter Custom Config
+            tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here."
+            type: text
+            inputType: text
+            required: true
 
-onAfterScaleOut[workers]:
-  - forEach(event.response.nodes):
-    - cmd[${@i.id}]: |-
-        wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
-        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
-        wget ${baseUrl}/scripts/jmeter -O ~/jmeter/bin/jmeter
-        chmod +x ~/jmeter/bin/jmeter
-        wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
-      user: root
-    - cmd[cp]: cat /root/.ssh/authorized_keys
-      user: root
-    - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
-      user: root
-  - setupRemoteHosts
-  - installJMeterAddon: ${settings.toJSON()}
-
-onAfterScaleIn[workers]:
-  - setupRemoteHosts
-  - installJMeterAddon: ${settings.toJSON()}
-
-onInstall:  
-  - installJMeterAddon: ${settings.toJSON()}
+onInstall:
+  - installJMeterAddon
   - setupJmeter
   - setupRemoteHosts
   - setupAuthKey
+  - setupMasterConfigs
   - setupCpConfigs
   - setConfig
 
 actions:
   setupJmeter:
-    - cmd[cp,workers]: |-
+    - cmd[master,workers]: |-
         wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
         unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
-        wget ${baseUrl}/scripts/jmeter -O ~/jmeter/bin/jmeter
+        sed -i 's/^[^#]*HEAP:=/#&/' /root/jmeter/bin/jmeter
         chmod +x ~/jmeter/bin/jmeter
         wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
       user: root
-      
+
   setupCpConfigs:
     - cmd[cp]: |-
-        yum install java-1.8.0-openjdk  epel-release xmlstarlet -y -q
-        rm -rf ${globals.WEBROOT_DIR}/*
-        mkdir -p ${globals.WEBROOT_DIR}/results
         wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-        /etc/init.d/nginx restart
+        sudo /etc/init.d/nginx restart
+
+  setupMasterConfigs:
+    - cmd[master]: |-
+        yum install epel-release xmlstarlet -y -q
         wget ${baseUrl}/configs/TEST_PLAN.template -O ~/TEST_PLAN.template
         wget ${baseUrl}/scripts/clean-results.sh -O ~/clean-results.sh
         wget ${baseUrl}/scripts/kill-workers.sh -O ~/kill-workers.sh
         wget ${baseUrl}/scripts/run-workers.sh -O ~/run-workers.sh
         wget ${baseUrl}/scripts/prepare_plan.sh -O ~/prepare_plan.sh
-        wget ${baseUrl}/scripts/index.php -O  ${globals.WEBROOT_DIR}/index.php
-        touch ${globals.WEBROOT_DIR}/jmeter-run.log
-        ln -s ${globals.WEBROOT_DIR}/jmeter-run.log ${globals.LOG}
         chmod +x ~/*.sh
+        rm -rf ${globals.RESULTS_DIR}/*
+        mkdir -p ${globals.RESULTS_DIR}/results
+        wget ${baseUrl}/scripts/index.php -O  ${globals.RESULTS_DIR}/index.php
+        touch ${globals.RESULTS_DIR}/jmeter-run.log
+        chmod 777 ${globals.RESULTS_DIR}/jmeter-run.log
+        ln -s ${globals.RESULTS_DIR}/jmeter-run.log ${globals.LOG}
       user: root
-    
+
   setupRemoteHosts:
-    - cmd[cp]: echo "${nodes.workers.join(address, \n)}" > /root/workers_list
+    - cmd[master]: echo "${nodes.workers.join(address, \n)}" > /root/workers_list
       user: root
-      
+
   setupAuthKey:
-    - cmd[cp]: cat /root/.ssh/authorized_keys
+    - cmd[master]: cat /root/.ssh/authorized_keys
       user: root
     - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
       user: root
 
   runTests:
-    - cmd[cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}-jmeter |tee ${globals.LOG}
+    - cmd[master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}
       user: root
-      return: 
+      return:
          type: info
          message: Jmeter running test progress bar available by url [${env.url}](${env.url})
 
   stopTests:
-    - cmd [cp]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh |tee ${globals.LOG}
+    - cmd [master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh
       user: root
   setConfig:
     if (${settings.cfg-type} == 1):
-      cmd [cp]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -p ${settings.protocol} -l '${settings.urls}'
+      cmd [master]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -l '${settings.urls}'
       user: root
     if (${settings.cfg-type} == 2):
-      cmd [cp]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
+      cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
       user: root
   cleanResultsDir:
-    cmd [cp]: bash /root/clean-results.sh
+    cmd [master]: bash /root/clean-results.sh
     user: root
-    
+
   installJMeterAddon:
-      - jps: 
+      - jps:
           id: jmeter-addon
-          name: Jmeter Cluster
+          name: JMeter Cluster
           type: update
+          onAfterScaleOut[workers]:
+            - setupRemoteHosts
+            - installJMeterAddon
+            - forEach(event.response.nodes):
+              - cmd[${@i.id}]: |-
+                  wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
+                  unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
+                  sed -i 's/^[^#]*HEAP:=/#&/' /root/jmeter/bin/jmeter
+                  chmod +x ~/jmeter/bin/jmeter
+                  wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
+                user: root
+              - cmd[master]: cat /root/.ssh/authorized_keys
+                user: root
+              - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
+                user: root
+
+          onAfterScaleIn[workers]:
+            - setupRemoteHosts
+            - installJMeterAddon
 
           buttons:
           - action: runTests
@@ -234,16 +249,17 @@ actions:
 
         script: |
           var manifest = eval('(' + MANIFEST + ')');
-          jps = eval('(' + jps + ')');    
+          jps = eval('(' + jps + ')');
           jps.globals = manifest.globals;
           jps.actions = manifest.actions;
           jps.settings = manifest.settings;
+          jps.baseUrl = manifest.baseUrl;
 
-          jps.settings.fields[0].showIf['1'][2].max = parseInt((nodeCount * cloudlets) / 0.16, 10);
+          jps.settings.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.16, 10);
 
           return { result : 0, jps: String(jps) };
 
-      - install: 
+      - install:
           jps: ${response.jps}
-          settings: ${this}
-          nodeGroup: cp
+          settings: ${settings.toJSON()}
+          nodeGroup: master
