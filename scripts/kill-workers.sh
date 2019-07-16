@@ -1,6 +1,6 @@
 #/bin/bash
 
-JM_LOG='/var/www/webroot/ROOT/jmeter-run.log'
+JM_LOG='/root/jmeter-results/jmeter-run.log'
 
 truncate -s0 $JM_LOG
 echo "STOP Test in progress..." >> $JM_LOG
