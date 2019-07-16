@@ -5,12 +5,16 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-JM_LOG='/var/www/webroot/ROOT/jmeter-run.log'
+DOMAIN=$(basename $1)
+JM_LOG='/root/jmeter-results/jmeter-run.log'
+RESULTS_DIR='/root/jmeter-results/results'
+CSV_DIR='/root/jm-csv'
+TEST_PLAN='/root/TEST_PLAN.jmx'
 truncate -s0 $JM_LOG
 
 NAMESERVER='nameserver 8.8.8.8'
 
-echo $NAMESERVER > /etc/resolv.conf
+#echo $NAMESERVER > /etc/resolv.conf
 
 echo "Kill all master java processes..." >> $JM_LOG
 /usr/bin/pkill java; /usr/bin/pkill jmeter;
@@ -26,23 +30,9 @@ done
 
 sleep 10
 
-if [ ! -d /var/lib/nginx/$1 ]; then
-    mkdir -p /var/lib/nginx/$1
-fi
-
-if [ -f /var/lib/nginx/$1/TEST_OUTPUT1.csv ]; then
-    rm -f /var/lib/nginx/$1/TEST_OUTPUT1.csv
-fi
-
-if [ -d /var/www/webroot/ROOT/results/$1 ]; then
-    rm -rf /var/www/webroot/ROOT/results/$1
-fi
-
-if [ -d /var/lib/nginx/$1/TEST_PLAN.jmx ]; then
-   rm -f /var/lib/nginx/$1/TEST_PLAN.jmx
-fi
-
-cp /root/TEST_PLAN.jmx /var/lib/nginx/$1/TEST_PLAN.jmx
+[ -d "${CSV_DIR}" ] || mkdir -p ${CSV_DIR} 
+[ ! -f ${CSV_DIR}/${DOMAIN}.csv ] || rm -f ${CSV_DIR}/${DOMAIN}.csv
+[ ! -d "${RESULTS_DIR}/${DOMAIN}" ] || rm -rf ${RESULTS_DIR}/${DOMAIN}
 
 echo "Starting Master Jmeter server" >> $JM_LOG
 ulimit -n 999999
@@ -50,7 +40,7 @@ ulimit -n 999999
 WORKERS="$(cat workers_list|xargs |sed -e "s/ /:1099,/g"):1099"
 [ "x$WORKERS" == "x:1099" ] && WORKERS='' || WORKERS="-R $WORKERS"
 
-bash /root/jmeter/bin/jmeter -Jserver.rmi.ssl.disable=true -n -r -t /var/lib/nginx/$1/TEST_PLAN.jmx -l /var/lib/nginx/$1/TEST_OUTPUT1.csv -e -o /var/www/webroot/ROOT/results/$1 $WORKERS >> $JM_LOG
+bash /root/jmeter/bin/jmeter -Jserver.rmi.ssl.disable=true -n -r -t $TEST_PLAN -l ${CSV_DIR}/${DOMAIN}.csv -e -o ${RESULTS_DIR}/${DOMAIN} $WORKERS >> $JM_LOG
 
 for i in $(cat /root/workers_list);
 do
