@@ -7,9 +7,8 @@ do
  u) USERS_COUNT=${OPTARG};;
  r) RAMP_TIME=${OPTARG};;
  t) DURATION=${OPTARG};;
- d) DOMAIN=${OPTARG};;
+ d) URL=${OPTARG};;
  l) LINKS=${OPTARG};;
- p) PROTOCOL=${OPTARG};;
  c) CUSTOM=${OPTARG};;
  *) echo "ERROR";;
  esac
@@ -84,12 +83,14 @@ DURATION=$(( $DURATION*60 ))
 [ ! -n "$DURATION" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.duration']" -v "$DURATION" $CONFIG
 
 # Set domain name
+DOMAIN=$(basename "$URL")
 [ ! -n "$DOMAIN" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.domain']" -v "$DOMAIN" $CONFIG
 
 # Set domain regexp
 [ ! -n "$DOMAIN" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.embedded_url_re']" -v "(?i).*$DOMAIN.*" $CONFIG
 
 # Set protocol
+PROTOCOL=$(echo $URL| sed -e 's,:.*,,g')
 if [ "x${PROTOCOL^^}" == "xHTTPS" ]
 then
     xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.port']" -v "443" $CONFIG
