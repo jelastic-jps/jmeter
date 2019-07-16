@@ -1,4 +1,4 @@
 #!/bin/bash
 
-rm -rf /var/www/webroot/ROOT/results/*
+rm -rf /root/jmeter-results/results/*
 exit 0
