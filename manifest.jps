@@ -1,7 +1,7 @@
 ---
 jpsType: install
 jpsVersion: '1.1'
-name: Jmeter Cluster
+name: JMeter Cluster
 categories:
   - apps/popular
   - apps/clusters
@@ -25,7 +25,6 @@ nodes:
     nodeGroupData:
       validation:
         maxCount: 1
-    #links: worker:worker
     displayName: Web
 
   - nodeType: javaengine
@@ -34,7 +33,8 @@ nodes:
     nodeGroup: master
     env:
       JELASTIC_PORTS: 22
-      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:MaxRAMPercentage=70 -Xms32m
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC
+      HEAP: -XX:MaxRAMPercentage=70 -Xms32m
     nodeGroupData:
       validation:
         maxCount: 1
@@ -53,7 +53,8 @@ nodes:
     nodeGroup: workers
     env:
       JELASTIC_PORTS: 22
-      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:MaxRAMPercentage=70 -Xms32m
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC
+      HEAP: -XX:MaxRAMPercentage=70 -Xms32m
     metadata:
       layer: workers
     displayName: Workers
@@ -85,7 +86,7 @@ settings:
             tooltip: "Count of Virtual Users, which should be created."
             type: spinner
             min: 1
-            max: 200
+            max: 640
             increment: 1
             decimalPrecision: ''
             default: 50
@@ -100,7 +101,7 @@ settings:
             default: 10
           - name: rampup
             caption: Ramp-up Period
-            tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, jmeter will set up 2 virtual users each second.</br>
+            tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, JMeter will set up 2 virtual users each second.</br>
           To set up all virtual users immediately, ramp-up period should be set to 0.</br>
           Value range -  from 0 to 60."
             type: spinner
@@ -117,15 +118,15 @@ settings:
             required: false
         2:
           - name: jmCustom
-            caption: Jmeter Custom Config
-            tooltip: "In case if you have your own jmeter test plan, you can put XML content of your jmx file here."
+            caption: XML Manifest
+            tooltip: "In case if you have your own JMeter test plan, you can put XML content of your jmx file here."
             type: text
             inputType: text
             required: true
 
 onInstall:
   - installJMeterAddon
-  - setupJmeter
+  - setupJMeter
   - setupRemoteHosts
   - setupAuthKey
   - setupMasterConfigs
@@ -133,7 +134,7 @@ onInstall:
   - setConfig
 
 actions:
-  setupJmeter:
+  setupJMeter:
     - cmd[master,workers]: |-
         wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
         unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
@@ -171,7 +172,7 @@ actions:
   setupAuthKey:
     - cmd[master]: cat /root/.ssh/authorized_keys
       user: root
-    - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
+    - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
       user: root
 
   runTests:
@@ -179,7 +180,7 @@ actions:
       user: root
       return:
          type: info
-         message: Jmeter running test progress bar available by url [${env.url}](${env.url})
+         message: JMeter running test progress bar available by url [${env.url}](${env.url})
 
   stopTests:
     - cmd [master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh
@@ -213,7 +214,7 @@ actions:
                 user: root
               - cmd[master]: cat /root/.ssh/authorized_keys
                 user: root
-              - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" > /root/.ssh/authorized_keys
+              - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
                 user: root
 
           onAfterScaleIn[workers]:
@@ -255,7 +256,7 @@ actions:
           jps.settings = manifest.settings;
           jps.baseUrl = manifest.baseUrl;
 
-          jps.settings.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.16, 10);
+          jps.settings.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
 
           return { result : 0, jps: String(jps) };
 
