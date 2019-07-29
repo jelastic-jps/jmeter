@@ -153,6 +153,7 @@ actions:
         sed -i 's|;root_url = http://localhost:3000|root_url = %(protocol)s://%(domain)s/grafana/|' /etc/grafana/grafana.ini
         sed -i 's|;domain = localhost|domain = localhost|' /etc/grafana/grafana.ini
         wget ${baseUrl}/configs/grafana.db -O /var/lib/grafana/grafana.db
+        chown -R grafana.grafana /var/lib/grafana
         systemctl start grafana-server.service
       user: root
 
