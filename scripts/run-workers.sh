@@ -28,6 +28,11 @@ do
    [ "x$?" == "x0" ] && echo "Add iptables rules and starting jmeter-worker on $i [OK]" >> $JM_LOG || echo "Add iptables rules and starting jmeter-worker on $i [FAILED]" >> $JM_LOG
 done
 
+echo "Drop influx db jmeter"
+curl -XPOST "http://influx:8086/query" --data-urlencode "q=DROP DATABASE jmeter"
+echo "Creating new DB jmeter"
+curl -XPOST "http://influx:8086/query" --data-urlencode "q=CREATE DATABASE \"jmeter\""
+
 sleep 10
 
 [ -d "${CSV_DIR}" ] || mkdir -p ${CSV_DIR} 
