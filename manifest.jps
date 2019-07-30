@@ -15,6 +15,7 @@ globals:
   JM_DIR: /root
   LOG: /var/log/autotests.log
   RESULTS_DIR: /root/jmeter-results
+  GRAFANA_PASSWORD: ${fn.password(12)}
 
 nodes:
   - nodeType: nginxphp
@@ -27,8 +28,7 @@ nodes:
         maxCount: 1
     displayName: Web
 
-  - nodeType: javaengine
-    tag: libericajdk-12.0.1
+  - image: devbeta/jmeter:5.1.1-libericajdk-12.0.1
     cloudlets: 16
     nodeGroup: master
     env:
@@ -47,8 +47,7 @@ nodes:
         sourcePath: "/var/www/webroot/ROOT"
         sourceNodeGroup: cp
 
-  - nodeType: javaengine
-    tag: libericajdk-12.0.1
+  - image: devbeta/jmeter:5.1.1-libericajdk-12.0.1
     cloudlets: 16
     nodeGroup: workers
     env:
@@ -60,8 +59,20 @@ nodes:
     displayName: Workers
     count: 2
     scalingMode: STATELESS
+    
+  - image: influxdb:1.7.7
+    cloudlets: 16
+    nodeGroup: influx
+    env:
+      JELASTIC_PORTS: 22
+    nodeGroupData:
+      validation:
+        maxCount: 1
+    displayName: DB
+
 
 settings:
+  main:
     fields:
     - type: radio-fieldset
       caption: Configuration type
@@ -123,10 +134,17 @@ settings:
             type: text
             inputType: text
             required: true
+  configGrafana:
+    fields:
+    - name: grafanaPassword
+      caption: Grafana Password
+      type: string
+      tooltip: Grafana Password
+      inputType: string
+      required: true
 
 onInstall:
   - installJMeterAddon
-  - setupJMeter
   - setupRemoteHosts
   - setupAuthKey
   - setupMasterConfigs
@@ -134,19 +152,23 @@ onInstall:
   - setConfig
 
 actions:
-  setupJMeter:
-    - cmd[master,workers]: |-
-        wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
-        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
-        sed -i 's/^[^#]*HEAP:=/#&/' /root/jmeter/bin/jmeter
-        chmod +x ~/jmeter/bin/jmeter
-        wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
-      user: root
 
   setupCpConfigs:
     - cmd[cp]: |-
         wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-        sudo /etc/init.d/nginx restart
+        /etc/init.d/nginx restart
+        yum -q -y localinstall https://dl.grafana.com/oss/release/grafana-6.2.5-1.x86_64.rpm
+        systemctl daemon-reload
+        systemctl enable grafana-server.service
+        sed -i 's|;root_url = http://localhost:3000|root_url = %(protocol)s://%(domain)s/grafana/|' /etc/grafana/grafana.ini
+        sed -i 's|;domain = localhost|domain = localhost|' /etc/grafana/grafana.ini
+        wget ${baseUrl}/configs/grafana.db -O /var/lib/grafana/grafana.db
+        chown -R grafana.grafana /var/lib/grafana
+        systemctl start grafana-server.service
+        wget ${baseUrl}/scripts/grafana-set-password.sh -O /root/grafana-set-password.sh
+        chmod +x /root/grafana-set-password.sh
+        bash /root/grafana-set-password.sh ${globals.GRAFANA_PASSWORD}
+      user: root
 
   setupMasterConfigs:
     - cmd[master]: |-
@@ -163,38 +185,32 @@ actions:
         touch ${globals.RESULTS_DIR}/jmeter-run.log
         chmod 777 ${globals.RESULTS_DIR}/jmeter-run.log
         ln -s ${globals.RESULTS_DIR}/jmeter-run.log ${globals.LOG}
-      user: root
 
   setupRemoteHosts:
     - cmd[master]: echo "${nodes.workers.join(address, \n)}" > /root/workers_list
-      user: root
 
   setupAuthKey:
     - cmd[master]: cat /root/.ssh/authorized_keys
-      user: root
     - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
-      user: root
 
   runTests:
     - cmd[master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}
-      user: root
       return:
          type: info
          message: JMeter running test progress bar available by url [${env.url}](${env.url})
 
   stopTests:
     - cmd [master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh
-      user: root
   setConfig:
     if (${settings.cfg-type} == 1):
       cmd [master]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -l '${settings.urls}'
-      user: root
     if (${settings.cfg-type} == 2):
       cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
-      user: root
   cleanResultsDir:
     cmd [master]: bash /root/clean-results.sh
-    user: root
+  resetGrafanaPassword:
+    - cmd [cp]: bash /root/grafana-set-password.sh ${settings.grafanaPassword}
+      user: root
 
   installJMeterAddon:
       - jps:
@@ -205,17 +221,8 @@ actions:
             - setupRemoteHosts
             - installJMeterAddon
             - forEach(event.response.nodes):
-              - cmd[${@i.id}]: |-
-                  wget http://apache.volia.net//jmeter/binaries/apache-jmeter-5.1.1.zip -O /tmp/apache-jmeter.zip
-                  unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-5.1.1/ ~/jmeter
-                  sed -i 's/^[^#]*HEAP:=/#&/' /root/jmeter/bin/jmeter
-                  chmod +x ~/jmeter/bin/jmeter
-                  wget ${baseUrl}/configs/jmeter.properties -O ~/jmeter/bin/jmeter.properties
-                user: root
               - cmd[master]: cat /root/.ssh/authorized_keys
-                user: root
               - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
-                user: root
 
           onAfterScaleIn[workers]:
             - setupRemoteHosts
@@ -244,6 +251,11 @@ actions:
             caption: Clean results
             logsPath: ${globals.LOG}
             successText: Results directory was cleaned
+          - settings: configGrafana
+            action: resetGrafanaPassword
+            caption: Reset Grafana Password
+            logsPath: ${globals.LOG}
+            successText: Password was successfully changed!
 
         nodeCount: ${nodes.workers.length}
         cloudlets: ${nodes.workers.flexibleCloudlets}
@@ -256,7 +268,7 @@ actions:
           jps.settings = manifest.settings;
           jps.baseUrl = manifest.baseUrl;
 
-          jps.settings.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
+          jps.settings.main.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
 
           return { result : 0, jps: String(jps) };
 
@@ -264,3 +276,6 @@ actions:
           jps: ${response.jps}
           settings: ${settings.toJSON()}
           nodeGroup: master
+          
+success:
+  text: text/success.md?_r=${fn.random}
