@@ -139,7 +139,7 @@ settings:
     - name: grafanaPassword
       caption: Grafana Password
       type: string
-      tooltip: Grafana Password
+      tooltip: Indicate new password for user admin
       inputType: string
       required: true
 
