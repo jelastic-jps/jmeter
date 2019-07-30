@@ -1,184 +1,281 @@
 ---
 jpsType: install
 jpsVersion: '1.1'
-name: Jmeter Cluster
+name: JMeter Cluster
 categories:
   - apps/popular
   - apps/clusters
   - apps/dev-and-admin-tools
-description: Jmeter Cluster.
+description: A tool for performance testing
 logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
-baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
+baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
 
 globals:
-  OUTPUT_DIR: /var/www/webroot/ROOT
-  TEST_PLAN: ${settings.host}_${settings.threadCount}_${settings.duration}
-  LOG: /tmp/autotests.log
+  WEBROOT_DIR: /var/www/webroot/ROOT
+  JM_DIR: /root
+  LOG: /var/log/autotests.log
+  RESULTS_DIR: /root/jmeter-results
+  GRAFANA_PASSWORD: ${fn.password(12)}
 
 nodes:
   - nodeType: nginxphp
-    cloudlets: 8
+    cloudlets: 6
     nodeGroup: cp
+    env:
+      JELASTIC_PORTS: 22
     nodeGroupData:
       validation:
         maxCount: 1
-    links: worker:worker
-    addons: options
-    displayName: Master
+    displayName: Web
 
-  - nodeType: javaengine
-    tag: jdk-9.0.4
+  - image: devbeta/jmeter:5.1.1-libericajdk-12.0.1
+    cloudlets: 16
+    nodeGroup: master
+    env:
+      JELASTIC_PORTS: 22
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC
+      HEAP: -XX:MaxRAMPercentage=70 -Xms32m
+    nodeGroupData:
+      validation:
+        maxCount: 1
+    displayName: Master
+    volumes:
+      - "/root/jmeter-results"
+    volumeMounts:
+      "/root/jmeter-results":
+        readOnly: false
+        sourcePath: "/var/www/webroot/ROOT"
+        sourceNodeGroup: cp
+
+  - image: devbeta/jmeter:5.1.1-libericajdk-12.0.1
     cloudlets: 16
     nodeGroup: workers
+    env:
+      JELASTIC_PORTS: 22
+      GC_ALGO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC
+      HEAP: -XX:MaxRAMPercentage=70 -Xms32m
     metadata:
       layer: workers
     displayName: Workers
+    count: 2
+    scalingMode: STATELESS
+    
+  - image: influxdb:1.7.7
+    cloudlets: 16
+    nodeGroup: influx
+    env:
+      JELASTIC_PORTS: 22
+    nodeGroupData:
+      validation:
+        maxCount: 1
+    displayName: DB
+
 
 settings:
+  main:
     fields:
-    - name: host
-      caption: Host
+    - type: radio-fieldset
+      caption: Configuration type
+      name: cfg-type
+      default: '1'
+      values:
+        1: Default
+        2: Custom
+      showIf:
+        1:
+          - name: host
+            caption: Host
+            type: string
+            tooltip: Website name
+            inputType: string
+            default: http://example.com
+            regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
+            regexText: 'Incorrect Link (example: http(s)://example.com/)'
+            required: true
+          - name: threadCount
+            caption: Thread Count (VU)
+            tooltip: "Count of Virtual Users, which should be created."
+            type: spinner
+            min: 1
+            max: 640
+            increment: 1
+            decimalPrecision: ''
+            default: 50
+          - name: duration
+            caption: Test Duration
+            tooltip: "Test time duration in minutes. Value should be from 1 to 60 minutes."
+            type: spinner
+            min: 1
+            max: 60
+            increment: 1
+            decimalPrecision: ''
+            default: 10
+          - name: rampup
+            caption: Ramp-up Period
+            tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, JMeter will set up 2 virtual users each second.</br>
+          To set up all virtual users immediately, ramp-up period should be set to 0.</br>
+          Value range -  from 0 to 60."
+            type: spinner
+            min: 0
+            max: 60
+            increment: 1
+            decimalPrecision: ''
+            default: 5
+          - name: urls
+            caption: URL List
+            tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
+            type: text
+            inputType: text
+            required: false
+        2:
+          - name: jmCustom
+            caption: XML Manifest
+            tooltip: "In case if you have your own JMeter test plan, you can put XML content of your jmx file here."
+            type: text
+            inputType: text
+            required: true
+  configGrafana:
+    fields:
+    - name: grafanaPassword
+      caption: Grafana Password
       type: string
+      tooltip: Indicate new password for user admin
       inputType: string
-      default: example.com
-      regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
-      regexText: 'Incorrect Link (example: http(s)://example.com/)'
       required: true
-    - name: protocol
-      caption: Protocol
-      type: string
-      inputType: string
-      default: http
-      required: true
-    - name: threadCount
-      caption: Thread Count (VU)
-      type: string
-      inputType: string
-      default: 10
-      required: true
-    - name: duration
-      caption: Test Duration in sec
-      type: string
-      inputType: string
-      default: 300
-      required: true
-    - name: rampup
-      caption: RamPUP
-      type: string
-      inputType: string
-      default: 60
-      required: true
-    - type: string
-      inputType: text
-      name: email
-      caption: Report to
-      placeholder: Your@email.com
-      required: true
-      default: "${user.email}"
 
-addons:
-  - id: options
-    buttons:
-    - procedure: runTests
-      caption: Run tests
-      logsPath: "${globals.LOG}"
-      successText: Autotests are launched.
-    - procedure: stopTests
-      caption: Stop tests
-      logsPath: "${globals.LOG}"
-      successText: Autotests are stopped
-    - settings: main
-      procedure: setConfig
-      caption: Change Test Plan
-      logsPath: "${globals.LOG}"
-      submitButtonText: Apply
-      successText: Test plan is successfully applied.
-
-onAfterScaleOut[workers]:
-  - forEach(event.response.nodes):
-    - cmd[${@i.id}]: |-
-        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-        unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
-        sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
-    - setupRemoteHosts
-    - setupRMIHost:
-        id: "${@i.id}"
-    - setupOPTSjava:
-        id: "${@i.id}"
-
-onAfterScaleIn[workers]:
+onInstall:
+  - installJMeterAddon
   - setupRemoteHosts
-
-onInstall:  
-  - script[cp,workers]: "${baseUrl}/scripts/firewallRules.js"
-    ports: '1099'
-    name: Jmeter
-
-  - cmd[cp]: yum install java-1.8.0-openjdk -y
-    user: root
-
-  - cmd[cp]: |-
-      rm -rf ${globals.OUTPUT_DIR}/*
-      wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
-      sudo /etc/init.d/nginx restart
-
-  - cmd[cp,workers]: |-
-      wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.3.zip -O /tmp/apache-jmeter.zip
-      unzip -q /tmp/apache-jmeter.zip; mv ~/apache-jmeter-3.3/ ~/apache-jmeter
-      sed -i "s/^CURRENT_VERSION.*/CURRENT_VERSION=1.8.0/g" ~/apache-jmeter/bin/jmeter
-    
-  - setupRemoteHosts
-  
-  - forEach(i:nodes.workers):
-      - setupRMIHost:
-          id: "${@i.id}"
-      - setupOPTSjava:
-          id: "${@i.id}"
-
-  - cmd[cp]:
-    - wget ${baseUrl}/configs/basic_test_plan.jmx.template -O ~/basic_test_plan.jmx.template
+  - setupAuthKey
+  - setupMasterConfigs
+  - setupCpConfigs
+  - setConfig
 
 actions:
-  setupRemoteHosts:
-    script: |
-      var resp = jelastic.env.control.GetEnvInfo('${env.envName}', session);
-      if (resp.result != 0) return resp;
-      var nodes = [];
-      for (var i = 0, n = resp.nodes; i < n.length; i++)
-        n[i].nodeGroup == nodeGroup ? nodes.push('node' + n[i].id + ':1099') : 0
-      resp = {result:0, onAfterReturn: {}};
-      resp.onAfterReturn['cmd['+ targetNode +']'] = 'sed -i "s/^remote_hosts.*/remote_hosts = '+ nodes.join(',') +'/" ~/apache-jmeter/bin/jmeter.properties';
-      return resp;
-    nodeGroup: workers
-    targetNode: cp
-  
-  setupRMIHost:
-    cmd[${this.id}]: |-
-      sed -i "s/^\#RMI_HOST_DEF.*/RMI_HOST_DEF=-Djava.rmi.server.hostname=node${this.id}-${env.domain}/g" ~/apache-jmeter/bin/jmeter-server
-      sed -i "s/^\#server.rmi.localport.*/server.rmi.localport=4000/g" ~/apache-jmeter/bin/jmeter.properties    
 
-  setupOPTSjava:
-    cmd[${this.id}]: |-
-      sed -i "s/^JMETER_OPTS.*/JMETER_OPTS=\"-Djava.net.preferIPv4Stack=true\"/g" ~/apache-jmeter/bin/jmeter
-      sed -i "s/^HEAP=.*/HEAP=\"-Xms1024m -Xmx1024m\"/g" ~/apache-jmeter/bin/jmeter
+  setupCpConfigs:
+    - cmd[cp]: |-
+        wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
+        /etc/init.d/nginx restart
+        yum -q -y localinstall https://dl.grafana.com/oss/release/grafana-6.2.5-1.x86_64.rpm
+        systemctl daemon-reload
+        systemctl enable grafana-server.service
+        sed -i 's|;root_url = http://localhost:3000|root_url = %(protocol)s://%(domain)s/grafana/|' /etc/grafana/grafana.ini
+        sed -i 's|;domain = localhost|domain = localhost|' /etc/grafana/grafana.ini
+        wget ${baseUrl}/configs/grafana.db -O /var/lib/grafana/grafana.db
+        chown -R grafana.grafana /var/lib/grafana
+        systemctl start grafana-server.service
+        wget ${baseUrl}/scripts/grafana-set-password.sh -O /root/grafana-set-password.sh
+        chmod +x /root/grafana-set-password.sh
+        bash /root/grafana-set-password.sh ${globals.GRAFANA_PASSWORD}
+      user: root
+
+  setupMasterConfigs:
+    - cmd[master]: |-
+        yum install epel-release xmlstarlet -y -q
+        wget ${baseUrl}/configs/TEST_PLAN.template -O ~/TEST_PLAN.template
+        wget ${baseUrl}/scripts/clean-results.sh -O ~/clean-results.sh
+        wget ${baseUrl}/scripts/kill-workers.sh -O ~/kill-workers.sh
+        wget ${baseUrl}/scripts/run-workers.sh -O ~/run-workers.sh
+        wget ${baseUrl}/scripts/prepare_plan.sh -O ~/prepare_plan.sh
+        chmod +x ~/*.sh
+        rm -rf ${globals.RESULTS_DIR}/*
+        mkdir -p ${globals.RESULTS_DIR}/results
+        wget ${baseUrl}/scripts/index.php -O  ${globals.RESULTS_DIR}/index.php
+        touch ${globals.RESULTS_DIR}/jmeter-run.log
+        chmod 777 ${globals.RESULTS_DIR}/jmeter-run.log
+        ln -s ${globals.RESULTS_DIR}/jmeter-run.log ${globals.LOG}
+
+  setupRemoteHosts:
+    - cmd[master]: echo "${nodes.workers.join(address, \n)}" > /root/workers_list
+
+  setupAuthKey:
+    - cmd[master]: cat /root/.ssh/authorized_keys
+    - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
 
   runTests:
-    - stopTests
-    - cmd[workers]: bash /home/jelastic/apache-jmeter/bin/jmeter-server & >> ${globals.LOG}
-    - cmd[cp]: bash ~/apache-jmeter/bin/jmeter -n -r -t ~/${globals.TEST_PLAN}/TEST_PLAN.jmx -l ~/${globals.TEST_PLAN}/TEST_OUTPUT.csv -e -o ${globals.OUTPUT_DIR}/${globals.TEST_PLAN} >> ${globals.LOG}
+    - cmd[master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}
+      return:
+         type: info
+         message: JMeter running test progress bar available by url [${env.url}](${env.url})
 
   stopTests:
-    cmd [cp,workers]:
-      - pkill jmeter >> ${globals.LOG}
-      - pkill java >> ${globals.LOG}
-      - echo 'Tests are stopped' >> ${globals.LOG}
+    - cmd [master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh
   setConfig:
-    cmd [cp]: |-
-      mkdir -p ~/${globals.TEST_PLAN}
-      cp ~/basic_test_plan.jmx.template ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_HOST_/${settings.host}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_PROTOCOL_/${settings.protocol}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_NUM_THREADS_/${settings.threadCount}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_RAMP_TIME_/${settings.rampup}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_DURATION_/${settings.duration}/g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
-      sed -i "s/_PATH_/\//g" ~/${globals.TEST_PLAN}/TEST_PLAN.jmx
+    if (${settings.cfg-type} == 1):
+      cmd [master]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -l '${settings.urls}'
+    if (${settings.cfg-type} == 2):
+      cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
+  cleanResultsDir:
+    cmd [master]: bash /root/clean-results.sh
+  resetGrafanaPassword:
+    - cmd [cp]: bash /root/grafana-set-password.sh ${settings.grafanaPassword}
+      user: root
+
+  installJMeterAddon:
+      - jps:
+          id: jmeter-addon
+          name: JMeter Cluster
+          type: update
+          onAfterScaleOut[workers]:
+            - setupRemoteHosts
+            - installJMeterAddon
+            - forEach(event.response.nodes):
+              - cmd[master]: cat /root/.ssh/authorized_keys
+              - cmd[${@i.id}]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
+
+          onAfterScaleIn[workers]:
+            - setupRemoteHosts
+            - installJMeterAddon
+
+          buttons:
+          - action: runTests
+            caption: Run tests
+            logsPath: ${globals.LOG}
+            successText: Autotest is running
+
+          - action: stopTests
+            caption: Stop tests
+            logsPath: ${globals.LOG}
+            successText: Autotests are stopped
+
+          - settings: main
+            action: setConfig
+            caption: Change config
+            logsPath: ${globals.LOG}
+            submitButtonText: Apply
+            successText: Test plan is successfully applied.
+
+          menu:
+          - action: cleanResultsDir
+            caption: Clean results
+            logsPath: ${globals.LOG}
+            successText: Results directory was cleaned
+          - settings: configGrafana
+            action: resetGrafanaPassword
+            caption: Reset Grafana Password
+            logsPath: ${globals.LOG}
+            successText: Password was successfully changed!
+
+        nodeCount: ${nodes.workers.length}
+        cloudlets: ${nodes.workers.flexibleCloudlets}
+
+        script: |
+          var manifest = eval('(' + MANIFEST + ')');
+          jps = eval('(' + jps + ')');
+          jps.globals = manifest.globals;
+          jps.actions = manifest.actions;
+          jps.settings = manifest.settings;
+          jps.baseUrl = manifest.baseUrl;
+
+          jps.settings.main.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
+
+          return { result : 0, jps: String(jps) };
+
+      - install:
+          jps: ${response.jps}
+          settings: ${settings.toJSON()}
+          nodeGroup: master
+          
+success:
+  text: text/success.md?_r=${fn.random}
