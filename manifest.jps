@@ -1,14 +1,15 @@
 ---
-jpsType: install
-jpsVersion: '1.1'
+type: install
 name: JMeter Cluster
 categories:
   - apps/popular
   - apps/clusters
   - apps/dev-and-admin-tools
-description: A tool for performance testing
-logo: https://raw.githubusercontent.com/jelastic-jps/wordpress-cluster/master/images/wp-cluster.png
-baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
+description: |
+  This package is designed for performance testing of web applications - static and dynamic resources. 
+  It can be used to simulate a heavy load on a server, group of servers or network to test and analyze overall performance under different load types.
+logo: /images/pt-70x70.png
+baseUrl: https://raw.githubusercontent.com/sych74/jmeter-cluster/master
 
 globals:
   WEBROOT_DIR: /var/www/webroot/ROOT
@@ -17,6 +18,7 @@ globals:
   RESULTS_DIR: /root/jmeter-results
   GRAFANA_PASSWORD: ${fn.password(12)}
 
+ssl: true
 nodes:
   - nodeType: nginxphp
     cloudlets: 6
@@ -40,11 +42,11 @@ nodes:
         maxCount: 1
     displayName: Master
     volumes:
-      - "/root/jmeter-results"
+      - /root/jmeter-results
     volumeMounts:
-      "/root/jmeter-results":
+      /root/jmeter-results:
         readOnly: false
-        sourcePath: "/var/www/webroot/ROOT"
+        sourcePath: /var/www/webroot/ROOT
         sourceNodeGroup: cp
 
   - image: devbeta/jmeter:5.1.1-libericajdk-12.0.1
@@ -70,6 +72,7 @@ nodes:
         maxCount: 1
     displayName: DB
 
+skipNodeEmails: true
 
 settings:
   main:
@@ -77,24 +80,24 @@ settings:
     - type: radio-fieldset
       caption: Configuration type
       name: cfg-type
-      default: '1'
+      default: 1
       values:
-        1: Default
-        2: Custom
+        1: Use default test plan with tunnable parameters
+        2: Deploy custom test plan via <a href="https://cwiki.apache.org/confluence/display/JMETER/JmxTestPlan#JmxTestPlan-JMXFormat" target="_blank">JMX format</a>
       showIf:
         1:
-          - name: host
-            caption: Host
+          - name: domain
+            caption: Protocol and Domain
             type: string
-            tooltip: Website name
+            tooltip: Testing website entry point.
             inputType: string
             default: http://example.com
             regex: "^(?:http(s)?://)?[\\w.-]+(?:\\.[\\w\\.-]+)+[\\w\\-\\._~:/?#[\\]@!\\$&'\\(\\)\\*\\+,;=.]+$"
             regexText: 'Incorrect Link (example: http(s)://example.com/)'
             required: true
-          - name: threadCount
-            caption: Thread Count (VU)
-            tooltip: "Count of Virtual Users, which should be created."
+          - name: vu
+            caption: Virtual Users (VU)
+            tooltip: Number of active concurrent threads.
             type: spinner
             min: 1
             max: 640
@@ -102,8 +105,8 @@ settings:
             decimalPrecision: ''
             default: 50
           - name: duration
-            caption: Test Duration
-            tooltip: "Test time duration in minutes. Value should be from 1 to 60 minutes."
+            caption: Test Duration, min
+            tooltip: Value should be from 1 to 60 minutes.
             type: spinner
             min: 1
             max: 60
@@ -111,10 +114,11 @@ settings:
             decimalPrecision: ''
             default: 10
           - name: rampup
-            caption: Ramp-up Period
-            tooltip: "Ramp-up Period - The time frame (in minutes) for all virtual users to start. E.g. for 100 virtual users and ramp-up time 1 minute, JMeter will set up 2 virtual users each second.</br>
-          To set up all virtual users immediately, ramp-up period should be set to 0.</br>
-          Value range -  from 0 to 60."
+            caption: Ramp-up Period, min
+            tooltip: |
+              The time frame for all virtual users (VU) to become active. <br>E.g. for 120 VU and ramp-up time 1 minute - 2 new VU will be added each second.<br>
+              Value range - from 0 to 60 minutes.<br>
+              To start all VU immediately please set ramp-up period to 0. 
             type: spinner
             min: 0
             max: 60
@@ -123,15 +127,19 @@ settings:
             default: 5
           - name: urls
             caption: URL List
-            tooltip: "List of website urls, which should be included to test plan manifest.</br>For example: /index.php /wp-login.php</br>If field is empty test plan will be configured only for website root url."
+            tooltip: |
+              List of website urls that should be included to the test plan.<br>
+              For example: /index.php /wp-login.php.</br>
+              If the field is empty then test plan will be configured only for website root url.
             type: text
             inputType: text
             required: false
         2:
-          - name: jmCustom
+          - name: jmx
             caption: XML Manifest
-            tooltip: "In case if you have your own JMeter test plan, you can put XML content of your jmx file here."
+            tooltip: "Please insert XML content of your jmx file here."
             type: text
+            height: 190
             inputType: text
             required: true
   configGrafana:
@@ -139,8 +147,8 @@ settings:
     - name: grafanaPassword
       caption: Grafana Password
       type: string
-      tooltip: Indicate new password for user admin
-      inputType: string
+      tooltip: New password for user admin
+      inputType: password
       required: true
 
 onInstall:
@@ -152,7 +160,6 @@ onInstall:
   - setConfig
 
 actions:
-
   setupCpConfigs:
     - cmd[cp]: |-
         wget ${baseUrl}/configs/nginx.conf -O /etc/nginx/nginx.conf
@@ -193,19 +200,19 @@ actions:
     - cmd[master]: cat /root/.ssh/authorized_keys
     - cmd[workers]: mkdir -p /root/.ssh;echo "${response.responses.out}" >> /root/.ssh/authorized_keys
 
-  runTests:
-    - cmd[master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.host}
+  runTest:
+    - cmd[master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/run-workers.sh ${settings.domain}
       return:
          type: info
-         message: JMeter running test progress bar available by url [${env.url}](${env.url})
+         message: Progress of the running test is available at [${env.url}](${env.url})
 
-  stopTests:
+  stopTest:
     - cmd [master]: chmod 777 /var/run/screen;/usr/bin/pkill screen;screen -wipe;screen -d -m /root/kill-workers.sh
   setConfig:
     if (${settings.cfg-type} == 1):
-      cmd [master]: bash /root/prepare_plan.sh -u ${settings.threadCount} -r ${settings.rampup} -t ${settings.duration} -d ${settings.host} -l '${settings.urls}'
+      cmd [master]: bash /root/prepare_plan.sh -u ${settings.vu} -r ${settings.rampup} -t ${settings.duration} -d ${settings.domain} -l '${settings.urls}'
     if (${settings.cfg-type} == 2):
-      cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
+      cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmx}'
   cleanResultsDir:
     cmd [master]: bash /root/clean-results.sh
   resetGrafanaPassword:
@@ -215,8 +222,10 @@ actions:
   installJMeterAddon:
       - jps:
           id: jmeter-addon
-          name: JMeter Cluster
+          name: JMeter Cluster Settings 
+          description: Run, stop or update the test plan.
           type: update
+          logo: /images/pt-70x70.png
           onAfterScaleOut[workers]:
             - setupRemoteHosts
             - installJMeterAddon
@@ -229,33 +238,33 @@ actions:
             - installJMeterAddon
 
           buttons:
-          - action: runTests
-            caption: Run tests
+          - action: runTest
+            caption: Run Test
             logsPath: ${globals.LOG}
-            successText: Autotest is running
+            successText: The test is in progress now!
 
-          - action: stopTests
-            caption: Stop tests
+          - action: stopTest
+            caption: Stop Test
             logsPath: ${globals.LOG}
-            successText: Autotests are stopped
+            successText: The test has been stopped.
 
           - settings: main
             action: setConfig
-            caption: Change config
+            caption: Configure
             logsPath: ${globals.LOG}
             submitButtonText: Apply
-            successText: Test plan is successfully applied.
+            successText: Update has been successfully applied.
 
           menu:
           - action: cleanResultsDir
-            caption: Clean results
+            caption: Clean Results
             logsPath: ${globals.LOG}
-            successText: Results directory was cleaned
+            successText: Results directory was successfully cleaned.
           - settings: configGrafana
             action: resetGrafanaPassword
             caption: Reset Grafana Password
             logsPath: ${globals.LOG}
-            successText: Password was successfully changed!
+            successText: Password has been successfully changed!.
 
         nodeCount: ${nodes.workers.length}
         cloudlets: ${nodes.workers.flexibleCloudlets}
@@ -277,5 +286,4 @@ actions:
           settings: ${settings.toJSON()}
           nodeGroup: master
           
-success:
-  text: text/success.md?_r=${fn.random}
+success: /text/success.md
