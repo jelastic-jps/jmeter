@@ -88,8 +88,10 @@ if(isset($_GET['getLog'])){
 		<div id="log">
 		 	
 		</div>
-		<div id="scrollLock"> <input class="disableScrollLock" type="button" value="Disable Scroll Lock" /> <input class="enableScrollLock" style="display: none;" type="button" value="Enable Scroll Lock" /></div>
-                <div style="margin-top:50px;"><a target="_blank" href="/results/" style="background-color:green">Results Dir</a></div>
+                <div style="margin-top:50px;">
+                   <a target="_blank" href="/results/" style="background-color:green">Results Dir</a>
+                   <a target="_blank" href="/grafana/" style="background-color:green">Grafana</a>
+                </div>
 	</body>
 </html>
 <?php  } ?>
