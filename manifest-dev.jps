@@ -72,6 +72,7 @@ nodes:
 
 
 settings:
+  main:
     fields:
     - type: radio-fieldset
       caption: Configuration type
@@ -133,6 +134,14 @@ settings:
             type: text
             inputType: text
             required: true
+  configGrafana:
+    fields:
+    - name: grafanaPassword
+      caption: Grafana Password
+      type: string
+      tooltip: Grafana Password
+      inputType: string
+      required: true
 
 onInstall:
   - installJMeterAddon
@@ -157,6 +166,7 @@ actions:
         chown -R grafana.grafana /var/lib/grafana
         systemctl start grafana-server.service
         wget ${baseUrl}/scripts/grafana-set-password.sh -O /root/grafana-set-password.sh
+        chmod +x /root/grafana-set-password.sh
         bash /root/grafana-set-password.sh ${globals.GRAFANA_PASSWORD}
       user: root
 
@@ -199,7 +209,8 @@ actions:
   cleanResultsDir:
     cmd [master]: bash /root/clean-results.sh
   resetGrafanaPassword:
-    - cmd [cp]: /root/grafana-set-password.sh ${settings.grafanaPassword}
+    - cmd [cp]: bash /root/grafana-set-password.sh ${settings.grafanaPassword}
+      user: root
 
   installJMeterAddon:
       - jps:
@@ -240,13 +251,7 @@ actions:
             caption: Clean results
             logsPath: ${globals.LOG}
             successText: Results directory was cleaned
-          - settings:
-            - name: grafanaPassword
-              caption: Grafana Password
-              type: string
-              tooltip: Grafana Password
-              inputType: string
-              required: true
+          - settings: configGrafana
             action: resetGrafanaPassword
             caption: Reset Grafana Password
             logsPath: ${globals.LOG}
@@ -263,7 +268,7 @@ actions:
           jps.settings = manifest.settings;
           jps.baseUrl = manifest.baseUrl;
 
-          jps.settings.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
+          jps.settings.main.fields[0].showIf[1][1].max = parseInt((nodeCount * cloudlets) / 0.05, 10);
 
           return { result : 0, jps: String(jps) };
 
