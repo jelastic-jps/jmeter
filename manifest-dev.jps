@@ -15,6 +15,7 @@ globals:
   JM_DIR: /root
   LOG: /var/log/autotests.log
   RESULTS_DIR: /root/jmeter-results
+  GRAFANA_PASSWORD: ${fn.password(12)}
 
 nodes:
   - nodeType: nginxphp
@@ -155,6 +156,8 @@ actions:
         wget ${baseUrl}/configs/grafana.db -O /var/lib/grafana/grafana.db
         chown -R grafana.grafana /var/lib/grafana
         systemctl start grafana-server.service
+        wget ${baseUrl}/scripts/grafana-set-password.sh -O /root/grafana-set-password.sh
+        bash /root/grafana-set-password.sh ${globals.GRAFANA_PASSWORD}
       user: root
 
   setupMasterConfigs:
@@ -195,6 +198,8 @@ actions:
       cmd [master]: bash /root/prepare_plan.sh -c '${settings.jmCustom}'
   cleanResultsDir:
     cmd [master]: bash /root/clean-results.sh
+  resetGrafanaPassword:
+    - cmd [cp]: /root/grafana-set-password.sh ${settings.grafanaPassword}
 
   installJMeterAddon:
       - jps:
@@ -235,6 +240,17 @@ actions:
             caption: Clean results
             logsPath: ${globals.LOG}
             successText: Results directory was cleaned
+          - settings:
+            - name: grafanaPassword
+              caption: Grafana Password
+              type: string
+              tooltip: Grafana Password
+              inputType: string
+              required: true
+            action: resetGrafanaPassword
+            caption: Reset Grafana Password
+            logsPath: ${globals.LOG}
+            successText: Password was successfully changed!
 
         nodeCount: ${nodes.workers.length}
         cloudlets: ${nodes.workers.flexibleCloudlets}
@@ -255,3 +271,6 @@ actions:
           jps: ${response.jps}
           settings: ${settings.toJSON()}
           nodeGroup: master
+          
+success:
+  text: text/success.md?_r=${fn.random}
