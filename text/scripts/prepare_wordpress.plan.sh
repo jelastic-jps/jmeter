@@ -1,29 +1,22 @@
 #!/bin/bash
 
-while getopts u:r:t:d:l:p:c: option
+while getopts u:r:t:w:t:d:l:p:c: option
 do
  case "${option}"
  in
  u) USERS_COUNT=${OPTARG};;
  r) RAMP_TIME=${OPTARG};;
  t) DURATION=${OPTARG};;
+ w) USERNAME=${OPTARG};;
+ p) PASSWORD=${OPTARG};;
  d) URL=${OPTARG};;
  l) LINKS=${OPTARG};;
- c) CUSTOM=${OPTARG};;
  *) echo "ERROR";;
  esac
 done
 
 CONFIG="/root/TEST_PLAN.jmx"
-TEMPLATE="/root/TEST_PLAN.template"
-
-if [ ! -z "$CUSTOM" ]
-then
-    echo "$CUSTOM" > $CONFIG
-    TEST_DURATION=$(grep 'ThreadGroup.duration' $CONFIG |awk -v RS='>' -v FS='<' 'NR>1{print $1}'|xargs)
-    sed -i 's|<stringProp name="ThreadGroup.duration">'"$TEST_DURATION"'</stringProp>|<stringProp name="ThreadGroup.duration">'"$(( $TEST_DURATION+300 ))"'</stringProp>|' $CONFIG
-    exit 0
-fi
+TEMPLATE="/root/TEST_PLAN-WP.template"
 
 if [ ! -z "$LINKS" ]
 then
@@ -60,7 +53,7 @@ EOF
 
     export VAR1
 
-    perl -lpe 'print "$ENV{VAR1}" if $. == 131' $TEMPLATE > $CONFIG
+    perl -lpe 'print "$ENV{VAR1}" if $. == 198' $TEMPLATE > $CONFIG
 else
     cp $TEMPLATE $CONFIG
 fi
@@ -72,6 +65,15 @@ USERS_PER_NODE=$(( $USERS_COUNT/$WORKERS_COUNT ))
 USERS_COUNT=$USERS_PER_NODE
 [ "x$USERS_COUNT" != "x0" ] || USERS_COUNT=1
 [ ! -n "$USERS_COUNT" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.num_threads']" -v "$USERS_COUNT" $CONFIG
+
+# Set domain name
+if [ -n "$URL" ]
+then
+    DOMAIN=$(basename "$URL")
+    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.domain']" -v "$DOMAIN" $CONFIG
+    # Set domain regexp
+    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.embedded_url_re']" -v "(?i).*$DOMAIN.*" $CONFIG
+fi
 
 # Set Rumpup time
 if [ -n "$RAMP_TIME" ]
@@ -88,15 +90,6 @@ then
     xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.duration']" -v "$DURATION" $CONFIG
 fi
 
-# Set domain name
-if [ -n "$URL" ]
-then
-    DOMAIN=$(basename "$URL")
-    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.domain']" -v "$DOMAIN" $CONFIG
-    # Set domain regexp
-    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.embedded_url_re']" -v "(?i).*$DOMAIN.*" $CONFIG
-fi
-
 # Set protocol
 PROTOCOL=$(echo $URL| sed -e 's,:.*,,g')
 if [[ -n "$PROTOCOL" && "x${PROTOCOL^^}" == "xHTTPS" ]]
@@ -108,3 +101,9 @@ then
     xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.port']" -v "80" $CONFIG
     xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.protocol']" -v "http" $CONFIG
 fi
+
+
+# set wordpress login
+[ ! -n "$USERNAME" ] || { USERNAME+='${userNumber}'; xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='log']/stringProp[@name='Argument.value']" -v "${USERNAME}" $CONFIG; }
+# set wordpress password
+[ ! -n "$PASSWORD" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='pwd']/stringProp[@name='Argument.value']" -v "${PASSWORD}" $CONFIG
