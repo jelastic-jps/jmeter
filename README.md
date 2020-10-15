@@ -11,7 +11,7 @@ Get your Jelastic account at any of available [hosting provider](https://jelasti
 
 Click the **DEPLOY TO JELASTIC** button, specify your email address within the widget and press **Install**.
 
-[![Deploy to Jelastic](images/deploy2jelastic.png)](https://jelastic.com/install-application/?manifest=https://raw.githubusercontent.com/jelastic-jps/jmeter-cluster/master/manifest.jps)
+[![Deploy to Jelastic](images/deploy2jelastic.png)](https://jelastic.com/install-application/?manifest=https://raw.githubusercontent.com/jelastic-jps/jmeter/master/manifest.jps)
 
 > **Note:** If you are already registered at Jelastic, you can deploy this cluster by importing the  [package manifest raw link](https://raw.githubusercontent.com/jelastic-jps/jmeter-cluster/master/manifest.jps).  
 
