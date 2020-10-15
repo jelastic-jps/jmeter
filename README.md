@@ -13,7 +13,7 @@ Click the **DEPLOY TO JELASTIC** button, specify your email address within the w
 
 [![Deploy to Jelastic](images/deploy2jelastic.png)](https://jelastic.com/install-application/?manifest=https://raw.githubusercontent.com/jelastic-jps/jmeter/master/manifest.jps)
 
-> **Note:** If you are already registered at Jelastic, you can deploy this cluster by importing the  [package manifest raw link](https://raw.githubusercontent.com/jelastic-jps/jmeter-cluster/master/manifest.jps).  
+> **Note:** If you are already registered at Jelastic, you can deploy this cluster by importing the  [package manifest raw link](https://raw.githubusercontent.com/jelastic-jps/jmeter/master/manifest.jps).  
 
 Once the manifest is imported, make a choice which appliance fits best your benchmarking.
 
