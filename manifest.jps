@@ -9,7 +9,7 @@ description: |
   This package is designed for performance testing of web applications - static and dynamic resources.
   It can be used to simulate a heavy load on a server, group of servers or network to test and analyze overall performance under different load types.
 logo: /images/jmeter-cluster-logo.png
-baseUrl: https://raw.githubusercontent.com/mo3g89/jmeter-cluster/master
+baseUrl: https://raw.githubusercontent.com/jelastic-jps/jmeter/master
 
 globals:
   WEBROOT_DIR: /var/www/webroot/ROOT
