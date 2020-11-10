@@ -130,8 +130,8 @@ settings:
             - name: urls
               caption: URL List
               tooltip: |
-                List of website urls that should be included to the test plan.<br>
-                For example: /index.php /wp-login.php.</br>
+                List of website urls that should be included to the test plan.  
+                For example: /index.php /wp-login.php.  
                 If the field is empty then test plan will be configured only for website root url.
               type: text
               inputType: text
@@ -188,7 +188,7 @@ settings:
               caption: URL List
               tooltip: |
                 List of website urls that should be included to the test plan.<br>
-                For example: /index.php /hello-world.</br>
+                For example: /index.php /hello-world.<br>
                 If the field is empty then test plan will be configured only for website root url.
               type: text
               inputType: text
@@ -198,7 +198,7 @@ settings:
               type: string
               tooltip: |
                 WordPress login pattern without numbers, which was generated via:  
-                for SW_USER_I in {10..10010}; do wp --allow-root user create "username${SW_USER_I}" "username${SW_USER_I}@example.com" --user_pass="MySuperPassword" --role="subscriber"; done;.</br>
+                for SW_USER_I in {10..10010}; do wp --allow-root user create "username${SW_USER_I}" "username${SW_USER_I}@example.com" --user_pass="MySuperPassword" --role="subscriber"; done;.<br>
                 In current example via wp cli will be created 10000 users with usernames from username10 to username10010 and in this field should be specified pattern "username"
               inputType: string
               default: username
@@ -224,8 +224,8 @@ settings:
         caption: Remote Workers Platform List
         tooltip: |
           List of remote Jelastic Platforms with tokens.<br>
-          Remote Jelastic app should be indicated as full url and token with ";" separator</br>
-          For example: https://app.demo.jelastic.com/ MYSECURETOKEN1; https://app.demo2.jelastic.com/ MYSECURETOKEN2</br>
+          Remote Jelastic app should be indicated as full url and token with ";" separator<br>
+          For example: https://app.demo.jelastic.com/ MYSECURETOKEN1; https://app.demo2.jelastic.com/ MYSECURETOKEN2<br>
           If the field is empty then test plan will be configured only for local JMeter workers.
         type: text
         height: 150
