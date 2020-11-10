@@ -197,8 +197,8 @@ settings:
               caption: WordPress Login
               type: string
               tooltip: |
-                WordPress login pattern without numbers, which was generated via:<br>
-                for SW_USER_I in {10..10010}; do wp –allow-root user create "username${SW_USER_I}" "username${SW_USER_I}@example.com" –user_pass="MySuperPassword" –role="subscriber"; done;.</br>
+                WordPress login pattern without numbers, which was generated via:  
+                for SW_USER_I in {10..10010}; do wp --allow-root user create "username${SW_USER_I}" "username${SW_USER_I}@example.com" --user_pass="MySuperPassword" --role="subscriber"; done;.</br>
                 In current example via wp cli will be created 10000 users with usernames from username10 to username10010 and in this field should be specified pattern "username"
               inputType: string
               default: username
