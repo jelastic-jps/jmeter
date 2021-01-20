@@ -53,7 +53,7 @@ EOF
 
     export VAR1
 
-    perl -lpe 'print "$ENV{VAR1}" if $. == 198' $TEMPLATE > $CONFIG
+    perl -lpe 'print "$ENV{VAR1}" if $. == 205' $TEMPLATE > $CONFIG
 else
     cp $TEMPLATE $CONFIG
 fi
@@ -70,9 +70,9 @@ USERS_COUNT=$USERS_PER_NODE
 if [ -n "$URL" ]
 then
     DOMAIN=$(basename "$URL")
-    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.domain']" -v "$DOMAIN" $CONFIG
+    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.domain']" -v "$DOMAIN" $CONFIG
     # Set domain regexp
-    xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.embedded_url_re']" -v "(?i).*$DOMAIN.*" $CONFIG
+    #xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ConfigTestElement[@testname='HTTP Request Defaults']/stringProp[@name='HTTPSampler.embedded_url_re']" -v "(?i).*$DOMAIN.*" $CONFIG
 fi
 
 # Set Rumpup time
@@ -104,6 +104,6 @@ fi
 
 
 # set wordpress login
-[ ! -n "$USERNAME" ] || { USERNAME+='${userNumber}'; xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='log']/stringProp[@name='Argument.value']" -v "${USERNAME}" $CONFIG; }
+[ ! -n "$USERNAME" ] || { USERNAME+='${userNumber}'; xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='log']/stringProp[@name='Argument.value']" -v "${USERNAME}" $CONFIG; }
 # set wordpress password
-[ ! -n "$PASSWORD" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='pwd']/stringProp[@name='Argument.value']" -v "${PASSWORD}" $CONFIG
+[ ! -n "$PASSWORD" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='pwd']/stringProp[@name='Argument.value']" -v "${PASSWORD}" $CONFIG
