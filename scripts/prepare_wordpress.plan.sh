@@ -53,7 +53,7 @@ EOF
 
     export VAR1
 
-    perl -lpe 'print "$ENV{VAR1}" if $. == 205' $TEMPLATE > $CONFIG
+    perl -lpe 'print "$ENV{VAR1}" if $. == 200' $TEMPLATE > $CONFIG
 else
     cp $TEMPLATE $CONFIG
 fi
@@ -61,7 +61,7 @@ fi
 # Set users
 WORKERS_COUNT=$(grep -v "^$" /root/workers_*|wc -l)
 USERS_PER_NODE=$(( $USERS_COUNT/$WORKERS_COUNT ))
-[ $USERS_PER_NODE -gt 135 ] && { echo "Not enough workers nodes. Maximum users count per worker is 135. For running test with $USERS_COUNT you should have $(( $USERS_COUNT/135 )) nodes"; exit 1; }
+[ $USERS_PER_NODE -gt 1000 ] && { echo "Not enough workers nodes. Maximum users count per worker is 135. For running test with $USERS_COUNT you should have $(( $USERS_COUNT/135 )) nodes"; exit 1; }
 USERS_COUNT=$USERS_PER_NODE
 [ "x$USERS_COUNT" != "x0" ] || USERS_COUNT=1
 [ ! -n "$USERS_COUNT" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/ThreadGroup[@testname='Thread Group']/stringProp[@name='ThreadGroup.num_threads']" -v "$USERS_COUNT" $CONFIG
@@ -104,6 +104,6 @@ fi
 
 
 # set wordpress login
-[ ! -n "$USERNAME" ] || { USERNAME+='${userNumber}'; xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='log']/stringProp[@name='Argument.value']" -v "${USERNAME}" $CONFIG; }
+[ ! -n "$USERNAME" ] || { USERNAME+='${userNumber}'; xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='log']/stringProp[@name='Argument.value']" -v "${USERNAME}" $CONFIG; }
 # set wordpress password
-[ ! -n "$PASSWORD" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='pwd']/stringProp[@name='Argument.value']" -v "${PASSWORD}" $CONFIG
+[ ! -n "$PASSWORD" ] || xmlstarlet edit -L -u "/jmeterTestPlan/hashTree/hashTree/hashTree/HTTPSamplerProxy/elementProp/collectionProp/elementProp[@name='pwd']/stringProp[@name='Argument.value']" -v "${PASSWORD}" $CONFIG
