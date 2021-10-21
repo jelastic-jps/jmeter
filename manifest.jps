@@ -411,11 +411,6 @@ actions:
           jelastic.env.control.ExecCmdByGroup('${env.envName}', session, "master", toJSON([{ "command": 'bash /root/prepare_wordpress.plan.sh -u ' + max }]), false, false, "root");
         }
 
-        return { result : 0, jps: String(jps), currSettings: currSettings };
-
-    - install:
-        jps: ${response.jps}
-        settings: ${response.currSettings.toJSON()}
-        nodeGroup: master
+        return { result: 0, onAfterReturn: { install : { jps: jps, settings: currSettings } } };
 
 success: /text/success.md
